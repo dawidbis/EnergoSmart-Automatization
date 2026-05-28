@@ -1,0 +1,273 @@
+{
+  "flowName": "EnergoSmart_EmailProcessor_Main",
+  "flowType": "CloudFlow",
+  "triggers": [
+    {
+      "name": "When_new_email_arrives",
+      "type": "Office365Outlook",
+      "config": {
+        "folderPath": "Inbox",
+        "includeAttachments": true,
+        "onlyWithAttachments": true
+      }
+    }
+  ],
+  "variables": [
+    {
+      "name": "FileContent",
+      "type": "String",
+      "description": "Stores attachment content"
+    },
+    {
+      "name": "ProcessedCount",
+      "type": "Integer",
+      "description": "Counter for processed attachments"
+    }
+  ],
+  "actions": [
+    {
+      "order": 1,
+      "name": "InitializeVariable_FileContent",
+      "type": "InitializeVariable",
+      "inputs": {
+        "variables": [
+          {
+            "name": "FileContent",
+            "type": "String",
+            "value": ""
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "name": "InitializeVariable_ProcessedCount",
+      "type": "InitializeVariable",
+      "inputs": {
+        "variables": [
+          {
+            "name": "ProcessedCount",
+            "type": "Integer",
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "name": "ForEachAttachment",
+      "type": "Foreach",
+      "inputs": {
+        "from": "@triggerOutputs()['body/attachments']",
+        "description": "Loop through each attachment"
+      },
+      "actions": [
+        {
+          "order": 1,
+          "name": "GetAttachment",
+          "type": "Office365Outlook_GetAttachment",
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "office365"
+              }
+            },
+            "method": "get",
+            "path": "/v2/me/mailFolders/@{triggerOutputs()['body/parentMessageId']}/messages/@{triggerOutputs()['body/id']}/attachments/@{item()['id']}",
+            "queries": {}
+          },
+          "outputs": {
+            "AttachmentContent": "@outputs('GetAttachment')['body/contentBytes']",
+            "AttachmentName": "@item()['name']"
+          }
+        },
+        {
+          "order": 2,
+          "name": "AIBuilder_AnalyzeDocument",
+          "type": "AIBuilder",
+          "inputs": {
+            "model": "PreBuiltForm_InvoiceProcessing",
+            "document": "@outputs('GetAttachment')['body/contentBytes']"
+          },
+          "outputs": {
+            "ConfidenceScore": "@outputs('AIBuilder_AnalyzeDocument')['body/ConfidenceScore']",
+            "ExtractedData": "@outputs('AIBuilder_AnalyzeDocument')['body/ExtractedFields']"
+          }
+        },
+        {
+          "order": 3,
+          "name": "ParseExtractedData",
+          "type": "ParseJSON",
+          "inputs": {
+            "content": "@outputs('AIBuilder_AnalyzeDocument')['body/ExtractedFields']",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ClientID": {
+                  "type": "string"
+                },
+                "Consumption": {
+                  "type": "number"
+                },
+                "ReadingDate": {
+                  "type": "string"
+                },
+                "Confidence": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        {
+          "order": 4,
+          "name": "ConditionCheckQuality",
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "greater": [
+                  "@outputs('ParseExtractedData')['Confidence']",
+                  0.85
+                ]
+              },
+              {
+                "greater": [
+                  "@outputs('ParseExtractedData')['Consumption']",
+                  0
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "ifTrue": [
+              {
+                "name": "CreateRecord_GreenPath",
+                "type": "DataverseCreateRecord",
+                "inputs": {
+                  "table": "energosmart_readings",
+                  "columns": {
+                    "cr123_readingid": "@concat(outputs('ParseExtractedData')['ClientID'], '_', utcNow())",
+                    "cr123_clientid": "@outputs('ParseExtractedData')['ClientID']",
+                    "cr123_readingdate": "@outputs('ParseExtractedData')['ReadingDate']",
+                    "cr123_consumption": "@outputs('ParseExtractedData')['Consumption']",
+                    "cr123_status": 1,
+                    "cr123_aiconfidence": "@mul(outputs('ParseExtractedData')['Confidence'], 100)",
+                    "cr123_sourcefileurl": "@triggerOutputs()['body/attachmentUrls'][item()]",
+                    "cr123_notes": "Auto-accepted via Cloud Flow - High AI confidence"
+                  }
+                }
+              },
+              {
+                "name": "IncrementCounter_Green",
+                "type": "IncrementVariable",
+                "inputs": {
+                  "name": "ProcessedCount",
+                  "value": 1
+                }
+              }
+            ],
+            "ifFalse": [
+              {
+                "name": "ConditionCheckCritical",
+                "type": "If",
+                "expression": {
+                  "or": [
+                    {
+                      "equals": [
+                        "@outputs('ParseExtractedData')['ClientID']",
+                        ""
+                      ]
+                    },
+                    {
+                      "equals": [
+                        "@outputs('ParseExtractedData')['Consumption']",
+                        null
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "ifTrue": [
+                    {
+                      "name": "SendEmail_Rejection",
+                      "type": "Office365Outlook_SendEmail",
+                      "inputs": {
+                        "host": {
+                          "connection": {
+                            "name": "office365"
+                          }
+                        },
+                        "method": "post",
+                        "body": {
+                          "To": "@triggerOutputs()['body/from']",
+                          "Subject": "EnergoSmart: Document unreadable - Please resend",
+                          "Body": "Your document could not be processed. Please ensure the document is clear and contains client ID and consumption reading."
+                        }
+                      }
+                    }
+                  ],
+                  "ifFalse": [
+                    {
+                      "name": "CreateRecord_YellowPath",
+                      "type": "DataverseCreateRecord",
+                      "inputs": {
+                        "table": "energosmart_readings",
+                        "columns": {
+                          "cr123_readingid": "@concat(outputs('ParseExtractedData')['ClientID'], '_', utcNow())",
+                          "cr123_clientid": "@outputs('ParseExtractedData')['ClientID']",
+                          "cr123_readingdate": "@outputs('ParseExtractedData')['ReadingDate']",
+                          "cr123_consumption": "@outputs('ParseExtractedData')['Consumption']",
+                          "cr123_status": 2,
+                          "cr123_aiconfidence": "@mul(outputs('ParseExtractedData')['Confidence'], 100)",
+                          "cr123_anomalyreason": "Low AI confidence or potential consumption anomaly - Requires manual review",
+                          "cr123_sourcefileurl": "@triggerOutputs()['body/attachmentUrls'][item()]",
+                          "cr123_notes": "Flagged for review - AI confidence below threshold"
+                        }
+                      }
+                    },
+                    {
+                      "name": "SendEmail_PendingReview",
+                      "type": "Office365Outlook_SendEmail",
+                      "inputs": {
+                        "host": {
+                          "connection": {
+                            "name": "office365"
+                          }
+                        },
+                        "method": "post",
+                        "body": {
+                          "To": "@triggerOutputs()['body/from']",
+                          "Subject": "EnergoSmart: Reading received - Under review",
+                          "Body": "Your reading has been received and is pending verification by our team. You will receive confirmation shortly."
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "name": "SendSummaryEmail",
+      "type": "Office365Outlook_SendEmail",
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "office365"
+          }
+        },
+        "method": "post",
+        "body": {
+          "To": "@triggerOutputs()['body/from']",
+          "Subject": "EnergoSmart: Processing Complete",
+          "Body": "@concat('Your submission has been processed. Processed: ', variables('ProcessedCount'), ' attachment(s).')"
+        }
+      }
+    }
+  ]
+}
