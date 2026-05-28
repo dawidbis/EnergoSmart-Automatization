@@ -186,7 +186,7 @@ def generate_test_documents(num_reports=20):
                 'type': doc_type,
                 'anomaly': readings[0].get('anomaly_type', None)
             })
-            print(f'  ✓ {client_id} ({doc_type})', end='')
+            print(f'  [OK] {client_id} ({doc_type})', end='')
             if readings[0].get('anomaly_type'):
                 print(f' [ANOMALY: {readings[0]["anomaly_type"]}]')
             else:
@@ -201,23 +201,23 @@ def summarize_generation():
         if file.is_file() and file.suffix in ['.xlsx', '.pdf']:
             docs.append(file.name)
 
-    print(f'\n📊 Generated {len(docs)} test documents in {OUTPUT_DIR}')
+    print(f'\n[SUMMARY] Generated {len(docs)} test documents in {OUTPUT_DIR}')
     for doc in sorted(docs)[:10]:
         print(f'   - {doc}')
     if len(docs) > 10:
         print(f'   ... and {len(docs) - 10} more')
 
 if __name__ == '__main__':
-    print('🚀 EnergoSmart Client Report Simulator\n')
+    print('[START] EnergoSmart Client Report Simulator\n')
 
     # Check if database exists
     if not os.path.exists(DB_PATH):
-        print(f'❌ Database not found at {DB_PATH}')
+        print(f'[ERROR] Database not found at {DB_PATH}')
         print('   Run: python generate_history_db.py')
         exit(1)
 
     generated = generate_test_documents(num_reports=20)
     summarize_generation()
 
-    print('\n✅ Report generation complete!')
+    print('\n[SUCCESS] Report generation complete!')
     print('These documents are ready for Power Automate + AI Builder testing.')

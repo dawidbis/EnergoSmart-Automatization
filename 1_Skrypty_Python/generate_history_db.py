@@ -145,7 +145,7 @@ def populate_database(conn, clients):
             current_date += timedelta(days=30)
 
     conn.commit()
-    print(f'✓ Inserted {inserted} records into {DB_PATH}')
+    print(f'[OK] Inserted {inserted} records into {DB_PATH}')
 
     # Print statistics
     cursor.execute('SELECT COUNT(*) FROM energosmart_history')
@@ -162,12 +162,12 @@ def populate_database(conn, clients):
 if __name__ == '__main__':
     print('Generating EnergoSmart historical database...')
     clients = generate_clients()
-    print(f'✓ Generated {len(clients)} client profiles')
+    print(f'[OK] Generated {len(clients)} client profiles')
 
     conn = init_database()
-    print(f'✓ Database schema initialized at {DB_PATH}')
+    print(f'[OK] Database schema initialized at {DB_PATH}')
 
     populate_database(conn, clients)
     conn.close()
 
-    print('\n✅ Database generation complete!')
+    print('\n[SUCCESS] Database generation complete!')
