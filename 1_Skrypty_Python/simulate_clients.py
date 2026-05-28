@@ -18,7 +18,7 @@ from fpdf import FPDF
 load_dotenv()
 
 DB_PATH = os.getenv('DB_PATH', '../2_Baza_Danych/energosmart_history.db')
-OUTPUT_DIR = '../3_Dokumenty_Testowe'
+OUTPUT_DIR = os.getenv('OUTPUT_DIR', '../3_Dokumenty_Testowe')
 ANOMALY_INJECTION_RATE = 0.15
 
 class EnergyReportPDF(FPDF):

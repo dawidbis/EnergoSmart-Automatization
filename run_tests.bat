@@ -1,0 +1,37 @@
+@echo off
+setlocal
+chcp 65001 >nul
+
+echo ============================================
+echo   EnergoSmart - Test Suite
+echo ============================================
+echo.
+
+if not exist ".venv\Scripts\activate.bat" (
+    echo [ERROR] Virtual environment not found.
+    echo         Run install.bat first.
+    pause
+    exit /b 1
+)
+call .venv\Scripts\activate.bat
+
+REM --- Ensure pytest available ---
+python -c "import pytest" >nul 2>&1
+if errorlevel 1 (
+    echo [..] Installing dev dependencies ...
+    pip install -r 1_Skrypty_Python\requirements-dev.txt --quiet
+)
+
+echo [..] Running pytest ...
+echo.
+python -m pytest 1_Skrypty_Python\tests -v
+set "RESULT=%errorlevel%"
+
+echo.
+if "%RESULT%"=="0" (
+    echo [OK] All tests passed.
+) else (
+    echo [FAIL] Some tests failed. See output above.
+)
+pause
+exit /b %RESULT%

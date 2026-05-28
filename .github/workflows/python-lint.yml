@@ -1,18 +1,38 @@
-name: Python Linting
+name: CI
 
 on:
   push:
-    branches: [ main, develop ]
-    paths:
-      - '1_Skrypty_Python/**/*.py'
-      - '.github/workflows/python-lint.yml'
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, master, develop ]
 
 jobs:
   lint:
     runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
 
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install lint tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8
+
+    - name: Lint Python scripts (syntax errors fail the build)
+      run: |
+        flake8 1_Skrypty_Python/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 1_Skrypty_Python/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Check .env.example exists
+      run: |
+        test -f "1_Skrypty_Python/.env.example" && echo "✓ .env.example present" || exit 1
+
+  test:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
@@ -24,13 +44,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8
+        pip install -r 1_Skrypty_Python/requirements-dev.txt
 
-    - name: Lint Python scripts
+    - name: Run test suite
       run: |
-        flake8 1_Skrypty_Python/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 1_Skrypty_Python/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-    - name: Check .env.example exists
-      run: |
-        [ -f "1_Skrypty_Python/.env.example" ] && echo "✓ .env.example present" || exit 1
+        python -m pytest 1_Skrypty_Python/tests -v
