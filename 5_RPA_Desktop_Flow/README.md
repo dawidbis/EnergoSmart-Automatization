@@ -41,21 +41,43 @@ Artifacts in this folder:
 
 ## Step 2 — Install the SQLite ODBC driver
 
-Power Automate has no SQLite connector, so install an ODBC driver:
+Power Automate has no SQLite connector, so install an ODBC driver.
+
+**Automated (recommended):** run **`setup.bat`** from the repo root (or just
+`install.bat`, which calls it). It checks the registry for the driver and, if
+missing, downloads the 64-bit installer and runs it silently — accept the UAC
+prompt — **and** sets the `ENERGOSMART_DB_PATH` env var (see Option A).
+`python 1_Skrypty_Python/setup.py --check-only` reports driver status only.
+
+**Manual:**
 
 1. Download **"SQLite ODBC Driver"** by Ch. Werner: http://www.ch-werner.de/sqliteodbc/
    - Use the **64-bit** installer (`sqliteodbc_w64.exe`) to match 64-bit PAD.
 2. Install with defaults. This registers the driver name **`SQLite3 ODBC Driver`**.
 
-### Option A — DSN-less connection string (simplest)
+### Option A — env var (recommended, portable)
 
-Use this string directly in the PAD "Open SQL connection" action (edit the path):
+Don't hard-code the path. `setup.bat` / `install.bat` set the Windows env var
+`ENERGOSMART_DB_PATH` to the absolute path of the warehouse. In the flow, read it
+with a **Get Windows environment variable** action
+(`ENERGOSMART_DB_PATH` → `EnvironmentVariableValue`) as the first step, then use:
+
+```
+Driver=SQLite3 ODBC Driver;Database=%EnvironmentVariableValue%;
+```
+
+> Env vars are read at process start — **restart PAD** after first setting it,
+> otherwise the variable won't appear in the action's dropdown.
+
+### Option B — DSN-less, hard-coded path (fallback)
+
+Only if the env var isn't set. Use this string directly in "Open SQL connection":
 
 ```
 Driver=SQLite3 ODBC Driver;Database=D:\EnergoSmart\EnergoSmart-Automatization\2_Baza_Danych\energosmart_history.db;
 ```
 
-### Option B — System DSN (cleaner, reusable)
+### Option C — System DSN (cleaner, reusable)
 
 1. Open **ODBC Data Sources (64-bit)** (Windows search).
 2. **System DSN** tab → **Add** → choose **SQLite3 ODBC Driver** → **Finish**.
@@ -76,7 +98,8 @@ Driver=SQLite3 ODBC Driver;Database=D:\EnergoSmart\EnergoSmart-Automatization\2_
    Optionally add **outputs** `SyncStatus` (Text) and `RowsAffected` (Numeric).
 3. Recreate the logic from **`PAD_kod_zrodlowy.txt`** — either paste the Robin
    source or build the actions via the **GUI action map** at the bottom of that file:
-   - **Open SQL connection** (the ODBC string / DSN from Step 2)
+   - **Get Windows environment variable** (`ENERGOSMART_DB_PATH` → `EnvironmentVariableValue`)
+   - **Open SQL connection** (`Driver=SQLite3 ODBC Driver;Database=%EnvironmentVariableValue%;`)
    - **Execute SQL statement** (the `INSERT OR REPLACE`)
    - **Close SQL connection**
    - guards for empty inputs + an error handler that reports back and closes.

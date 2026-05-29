@@ -52,11 +52,16 @@ pip install -r 1_Skrypty_Python\requirements-dev.txt --quiet
 echo [OK] Dev dependencies installed
 echo.
 
+REM --- RPA bridge setup (SQLite ODBC driver + ENERGOSMART_DB_PATH) ---
+echo [..] Setting up the RPA bridge (ODBC driver + DB path env var) ...
+python 1_Skrypty_Python\setup.py
+echo.
+
 REM --- Setup .env from template ---
 if not exist "1_Skrypty_Python\.env" (
     copy "1_Skrypty_Python\.env.example" "1_Skrypty_Python\.env" >nul
     echo [OK] Created .env from template
-    echo      ^>^> EDIT 1_Skrypty_Python\.env with your email/SMTP settings
+    echo      ^>^> Run setup_env.bat to configure your email/SMTP settings
 ) else (
     echo [OK] .env already present
 )
@@ -71,8 +76,8 @@ echo ============================================
 echo   Installation complete!
 echo ============================================
 echo Next steps:
-echo   1. (optional) Edit 1_Skrypty_Python\.env for email simulation
-echo   2. Generate data + reports:  run_local_pipeline.bat
-echo   3. Run the test suite:       run_tests.bat
+echo   1. Configure email/SMTP:      setup_env.bat
+echo   2. Generate data + reports:   run_local_pipeline.bat
+echo   3. Run the test suite:        run_tests.bat
 echo.
 pause

@@ -2,6 +2,13 @@
 setlocal
 chcp 65001 >nul
 
+echo ============================================
+echo   EnergoSmart - .env Setup Wizard
+echo ============================================
+echo.
+echo Configures email/SMTP settings used to send test documents.
+echo.
+
 if not exist ".venv\Scripts\activate.bat" (
     echo [ERROR] Virtual environment not found. Run install.bat first.
     pause
@@ -10,8 +17,7 @@ if not exist ".venv\Scripts\activate.bat" (
 call .venv\Scripts\activate.bat
 cd 1_Skrypty_Python
 
-REM Live dashboard - refreshes every 3s. Press Ctrl+C to stop.
-python monitor_company.py --watch --interval 3
+python setup_env.py
 
 cd ..
 echo.

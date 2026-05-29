@@ -28,15 +28,25 @@
  ODBC CONNECTION
 --------------------------------------------------------------------------------
  Requires the "SQLite3 ODBC Driver" by Ch. Werner (http://www.ch-werner.de/sqliteodbc/).
- Two ways to point at the file — pick ONE and use it consistently:
 
-   (A) DSN-less (used below):
+ The DB path is NOT hard-coded. It comes from the Windows env var
+ ENERGOSMART_DB_PATH, which setup_env.py / install.bat set to the absolute path of
+ 2_Baza_Danych/energosmart_history.db. The flow's first action reads it via the
+ "Get Windows environment variable" action (output: EnvironmentVariableValue), and
+ the connection string interpolates %EnvironmentVariableValue%.
+
+ Connection string forms (the flow uses the env-var one):
+
+   (A) Env-var, portable (used below):
+       Driver=SQLite3 ODBC Driver;Database=%EnvironmentVariableValue%;
+
+   (B) Hard-coded DSN-less (fallback if the env var isn't set):
        Driver=SQLite3 ODBC Driver;Database=<ABSOLUTE_PATH_TO_DB>;
 
-   (B) System DSN named EnergoSmartDB:
+   (C) System DSN named EnergoSmartDB:
        DSN=EnergoSmartDB;
 
- Adjust the absolute path to wherever the repo lives on the runner machine.
+ NOTE: env vars are read at process start — restart PAD after first setting it.
 
 ================================================================================
  ROBIN SOURCE  (paste into PAD: open the flow → Ctrl+A in the workspace →
@@ -58,10 +68,15 @@ ON ERROR
     EXIT Code: 1 ErrorMessage: SyncStatus
 END
 
-# --- 1) Open SQL connection (SQLite via ODBC) --------------------------------
-Database.Connect.Connect ConnectionString: $'''Driver=SQLite3 ODBC Driver;Database=D:\\EnergoSmart\\EnergoSmart-Automatization\\2_Baza_Danych\\energosmart_history.db;''' Connection=> SQLConnection
+# --- 1) Read the warehouse path from the Windows env var ---------------------
+# Action: System > "Get Windows environment variable"
+#   Variable name = ENERGOSMART_DB_PATH  ->  output EnvironmentVariableValue
+# (Robin for this action varies by PAD build; add it via the designer.)
 
-# --- 2) Execute INSERT -------------------------------------------------------
+# --- 2) Open SQL connection (SQLite via ODBC) --------------------------------
+Database.Connect.Connect ConnectionString: $'''Driver=SQLite3 ODBC Driver;Database=%EnvironmentVariableValue%;''' Connection=> SQLConnection
+
+# --- 3) Execute INSERT -------------------------------------------------------
 # Schema NOT NULL columns: client_id, client_name, sector, reading_date, consumption_kwh.
 # - client_name : reuse ClientID (the Dataverse row carries no separate warehouse name)
 # - sector      : 'Unknown' (sector is not known at sync time)
@@ -70,10 +85,10 @@ Database.Connect.Connect ConnectionString: $'''Driver=SQLite3 ODBC Driver;Databa
 # - INSERT OR REPLACE makes re-syncs idempotent instead of throwing on the UNIQUE key.
 Database.ExecuteSQLStatement.Execute Connection: SQLConnection Statement: $'''INSERT OR REPLACE INTO energosmart_history (client_id, client_name, sector, reading_date, consumption_kwh, status, inserted_at) VALUES ('%ClientID%', '%ClientID%', 'Unknown', date('%ReadingDate%'), %Consumption%, 'validated', datetime('now'))''' Timeout: 30 Result=> QueryResult
 
-# --- 3) Close SQL connection -------------------------------------------------
+# --- 4) Close SQL connection -------------------------------------------------
 Database.Close Connection: SQLConnection
 
-# --- 4) Report success -------------------------------------------------------
+# --- 5) Report success -------------------------------------------------------
 SET RowsAffected TO 1
 SET SyncStatus TO $'''OK'''
 
@@ -82,12 +97,15 @@ SET SyncStatus TO $'''OK'''
 ================================================================================
  1. If                          -> condition: ClientID is empty OR ... -> End the flow with error
  2. On block error / Try-style  -> wrap DB actions; on error set SyncStatus, Close, stop flow
- 3. Open SQL connection         -> Connection string = the ODBC string above   -> SQLConnection
- 4. Execute SQL statement       -> Connection = SQLConnection
+ 3. Get Windows environment variable -> Name = ENERGOSMART_DB_PATH -> EnvironmentVariableValue
+ 4. Open SQL connection         -> Connection string =
+                                   Driver=SQLite3 ODBC Driver;Database=%EnvironmentVariableValue%;
+                                   -> SQLConnection
+ 5. Execute SQL statement       -> Connection = SQLConnection
                                    Statement   = the INSERT OR REPLACE above
                                    Timeout     = 30
- 5. Close SQL connection        -> Connection = SQLConnection
- 6. Set variable                -> SyncStatus = "OK", RowsAffected = 1
+ 6. Close SQL connection        -> Connection = SQLConnection
+ 7. Set variable                -> SyncStatus = "OK", RowsAffected = 1
 
 ================================================================================
  VERIFY (after a test run, from the repo root)

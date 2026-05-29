@@ -68,13 +68,16 @@ Power Apps), **RPA** (Power Automate Desktop) and **Power BI**.
 > Requires Python 3.10+ on Windows.
 
 ```bat
-:: 1. Install (creates .venv, installs deps, sets up .env)
+:: 1. Install (creates .venv, installs deps, sets up .env, installs SQLite ODBC driver)
 install.bat
 
-:: 2. Generate the historical DB + sample Excel/PDF reports
+:: 2. Configure email/SMTP (interactive wizard; optional for local-only use)
+setup_env.bat
+
+:: 3. Generate the historical DB + sample Excel/PDF reports
 run_local_pipeline.bat
 
-:: 3. Run the test suite
+:: 4. Run the test suite
 run_tests.bat
 ```
 

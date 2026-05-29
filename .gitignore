@@ -28,6 +28,7 @@ wheels/
 .env
 .env.local
 .env.*.local
+.env.bak
 
 # Database
 *.db
@@ -50,6 +51,10 @@ Thumbs.db
 .pytest_cache/
 htmlcov/
 .coverage
+
+# Generated test documents (regenerate via generate_invoices.py / simulate_clients.py)
+3_Dokumenty_Testowe/*.pdf
+3_Dokumenty_Testowe/*.xlsx
 
 # Power Platform exports (large files, re-download from cloud)
 4_Power_Platform_Solucja/*.zip
