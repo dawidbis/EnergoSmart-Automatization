@@ -1,0 +1,33 @@
+@echo off
+setlocal
+chcp 65001 >nul
+
+echo ============================================
+echo   EnergoSmart - Generate Test Invoices
+echo ============================================
+echo.
+echo Paths: GREEN = valid (auto-accept), YELLOW = needs review,
+echo        RED = rejected (no client data).
+echo.
+
+if not exist ".venv\Scripts\activate.bat" (
+    echo [ERROR] Virtual environment not found. Run install.bat first.
+    pause
+    exit /b 1
+)
+call .venv\Scripts\activate.bat
+cd 1_Skrypty_Python
+
+set /p GREEN="GREEN (valid, auto-accept) count [0]: "
+set /p YELLOW="YELLOW (needs review)        count [0]: "
+set /p RED="RED (rejected)               count [0]: "
+if "%GREEN%"==""  set GREEN=0
+if "%YELLOW%"=="" set YELLOW=0
+if "%RED%"==""    set RED=0
+
+echo.
+python generate_invoices.py --green %GREEN% --yellow %YELLOW% --red %RED%
+
+cd ..
+echo.
+pause
