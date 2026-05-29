@@ -1,109 +1,121 @@
 # Cloud Flow 2: EnergoSmart_OnReadingAccepted
 
 ## Purpose
-Triggered when a reading is accepted in Dataverse. Calls Desktop Flow (RPA) to insert data into SQL database.
+Fires when a reading reaches `Status = Accepted` in Dataverse and calls the
+**Power Automate Desktop** flow `PAD_UpdateSQLDatabase` (RPA) to insert the
+validated reading into the local warehouse `2_Baza_Danych/energosmart_history.db`.
+On success it stamps the Dataverse row back to `Status = Synced`.
 
-## Setup
+> Naming here matches the **actually built** solution (see `../NEXT_STEPS.md`):
+> table **`Readings`**, publisher `dbis`, column prefix `db_`. Build the desktop
+> flow first (or as a stub) — see `../5_RPA_Desktop_Flow/README.md`.
 
-### 1. Create Flow
-
-1. **Power Automate** → **Create** → **Cloud flow** → **Automated cloud flow**
-2. Name: `EnergoSmart_OnReadingAccepted`
-3. Trigger: **Dataverse** → **When a record is created** (search "dataverse")
-4. Click **Create**
-
-### 2. Configure Trigger
-
-In trigger box:
-- **Table**: `energosmart_readings` (select from dropdown)
-- **Scope**: `Organization` (allows any user to trigger)
+```
+Dataverse row Modified ──► Condition: Status = Accepted ──► Run PAD flow ──► Update row: Synced
+```
 
 ---
 
-## 3. Add Condition: Check Status
+## 1. Create the flow (inside the solution)
 
-1. **New step** → **Condition**
-2. Set:
-   ```
-   If [Status] equals Accepted
-   ```
-   (Select Status column from dynamic content)
+1. **Power Automate** → open solution **EnergoSmart System** → **New** →
+   **Automation** → **Cloud flow** → **Automated**.
+2. Name: `EnergoSmart_OnReadingAccepted`.
+3. Trigger: **Dataverse → When a row is added, modified or deleted**. **Create**.
 
----
-
-## 4. If True: Call Desktop Flow
-
-**Inside the "If True" branch:**
-
-1. **New step** → **Power Automate Desktop** → **Run a desktop flow**
-2. Select Desktop Flow: `PAD_UpdateSQLDatabase` (create this later in Power Automate Desktop)
-3. Pass these inputs:
-   - **ClientID**: `Reading ID` (from record)
-   - **Consumption**: `Consumption kWh` (from record)
-   - **ReadingDate**: `Reading Date` (from record)
-   - **SourceFile**: `Source File URL` (from record)
-
-### Alternative: If Desktop Flow doesn't exist yet
-
-You can **skip Desktop Flow** and just call SQL directly:
-
-1. **New step** → **SQL Server** → **Execute a SQL query**
-2. Server: (your local server or Azure SQL)
-3. Database: `energosmart_history`
-4. Query:
-   ```sql
-   INSERT INTO energosmart_history 
-   (client_id, reading_date, consumption_kwh, month_avg_kwh, status, inserted_at)
-   VALUES 
-   (@client_id, @date, @consumption, NULL, 'validated', GETDATE())
-   ```
-5. Parameters:
-   - `@client_id` = Reading ID
-   - `@date` = Reading Date
-   - `@consumption` = Consumption kWh
+Building it *inside the solution* keeps it in the export `.zip`.
 
 ---
 
-## 5. Add Step: Update Record Status
+## 2. Configure the trigger
 
-After Desktop Flow succeeds:
+In the trigger card:
+- **Change type**: `Modified`
+- **Table name**: `Readings`
+- **Scope**: `Organization` (any user's edit can trigger it)
+- (Optional) **Select columns** / **Filter rows** to narrow firing — leave blank to start.
 
-1. **New step** → **Dataverse** → **Update a record**
-2. Table: `energosmart_readings`
-3. Row ID: `Record ID` (from trigger)
+> We trigger on **Modified** because the status flips from `Pending Review`/`Accepted`
+> after the row already exists (the Power Apps button patches the existing row).
+
+---
+
+## 3. Condition — only continue when Accepted
+
+1. **New step** → **Condition**.
+2. Left value: the **Status** column from the trigger row (dynamic content).
+   - The trigger returns Status as its **option-set value** (an integer), not the
+     label. Two robust ways to compare:
+     - Use the **Status Value** dynamic-content field if shown, OR
+     - compare the label text after a **Get a row by ID**, OR
+     - compare against the numeric value of `Accepted` from your choice set.
+3. Operator: **is equal to** → **Accepted** (label or its option value).
+
+Everything below goes in the **If yes** branch.
+
+---
+
+## 4. If yes — run the desktop flow (RPA)
+
+1. **New step** → **Run a flow built with Power Automate Desktop**.
+2. **Desktop flow**: `PAD_UpdateSQLDatabase`.
+3. **Run mode**: **Attended** (student/dev tenant — keep PAD open). Pick **your machine**.
+4. Inputs (map from the trigger row):
+   | Desktop input | Dataverse field |
+   |---|---|
+   | `ClientID` | Client ID (`db_clientid`) |
+   | `Consumption` | Consumption kWh (`db_consumptionkwh`) |
+   | `ReadingDate` | Reading Date (`db_readingdate`) |
+
+> See `../5_RPA_Desktop_Flow/README.md` + `PAD_kod_zrodlowy.txt` for the desktop
+> flow itself (ODBC → SQLite `INSERT`).
+
+---
+
+## 5. After success — mark the row Synced
+
+1. **New step** (still in **If yes**) → **Dataverse → Update a row**.
+2. **Table**: `Readings`.
+3. **Row ID**: the trigger row's unique id (dynamic content).
 4. Set columns:
-   - **Status**: `Synced`
-   - **Verified At**: `utcNow()`
+   - **Status** = `Synced`
+   - **Verified At** = `utcNow()`
+
+> Setting Status to `Synced` (not back to `Accepted`) prevents the Modified trigger
+> from looping — `Synced` fails the Step 3 condition, so the flow stops cleanly.
 
 ---
 
-## 6. Save & Activate
+## 6. Save & turn on
 
-Click **Save** → Toggle **On**
+**Save** → toggle **On**.
 
 ---
 
 ## Testing
 
-1. Go to Dataverse → `energosmart_readings`
-2. Create manual record with:
-   - Client ID: `CLIENT_0025`
-   - Consumption kWh: `12345.67`
-   - Status: `Pending Review`
-3. Change Status to `Accepted`
-4. Flow should trigger automatically
-5. Check if record Status changed to `Synced`
+1. Keep **Power Automate Desktop** open and signed in (attended runs).
+2. In the Power Apps app **Accept** a `Pending Review` reading, or in Dataverse set a
+   row's **Status** to `Accepted` manually.
+3. Flow 2 fires → desktop-flow action runs → row should flip to **Synced**.
+4. Verify the local insert:
+   ```bat
+   python -c "import sqlite3;c=sqlite3.connect(r'2_Baza_Danych/energosmart_history.db');print(c.execute(\"SELECT client_id,reading_date,consumption_kwh,status FROM energosmart_history WHERE sector='Unknown' ORDER BY inserted_at DESC LIMIT 5\").fetchall())"
+   ```
 
 ---
 
-## Next: Power Apps Interface
+## Common gotchas
 
-Once both flows work, create Power Apps model-driven app:
-- View records with Status = "Pending Review"
-- Show attachment preview
-- Button to change status (which triggers Flow 2)
+| Symptom | Fix |
+|---|---|
+| Flow loops forever | Final update must set a status that **fails** the condition (use `Synced`). |
+| Condition never true | You compared label vs. option value — match types (label↔label or value↔value). |
+| Desktop step can't run | Pick **Attended** + your registered machine; keep PAD open. |
+| Nothing inserted locally | Check the SQLite ODBC string/DSN and the absolute `.db` path in the PAD flow. |
 
-## Also See
-
-- `README.md` - Architecture overview
-- `SETUP_GUIDE.md` - Flow 1 (Email Processor) setup
+## Also see
+- `../5_RPA_Desktop_Flow/README.md` — desktop flow + ODBC setup
+- `00_SOLUTION_SETUP.md` — solution / table / connections
+- `SETUP_GUIDE.md` — Cloud Flow 1 (Email Processor)
+- `../NEXT_STEPS.md` — roadmap (Step 5 / Step 6)

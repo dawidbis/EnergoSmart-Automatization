@@ -1,0 +1,100 @@
+================================================================================
+ PAD_UpdateSQLDatabase  —  Power Automate Desktop (RPA) source
+================================================================================
+ Purpose : Cloud Flow 2 (EnergoSmart_OnReadingAccepted) calls this desktop flow
+           when a reading reaches Status = Accepted. It writes the validated
+           reading into the local warehouse  2_Baza_Danych/energosmart_history.db
+           via the SQLite ODBC bridge.
+
+ This is the "headline" piece of the architecture: the cloud → on-prem hand-off.
+
+--------------------------------------------------------------------------------
+ INPUT VARIABLES  (define these in PAD: Variables pane → Input/Output → New input)
+--------------------------------------------------------------------------------
+   ClientID      Text     e.g.  CLIENT_0042   (Dataverse: db_clientid)
+   Consumption   Text     e.g.  12345.67      (Dataverse: db_consumptionkwh)
+   ReadingDate   Text     e.g.  2026-05-28    (Dataverse: db_readingdate)
+
+ NOTE: Power Automate passes numbers/dates as text into PAD. The SQL below treats
+       ClientID/ReadingDate as quoted text and Consumption as a bare numeric.
+
+--------------------------------------------------------------------------------
+ OUTPUT VARIABLES  (optional, surfaced back to Cloud Flow 2)
+--------------------------------------------------------------------------------
+   SyncStatus    Text     "OK" on success, "ERROR: ..." on failure
+   RowsAffected  Numeric  number of rows written (expected 1)
+
+--------------------------------------------------------------------------------
+ ODBC CONNECTION
+--------------------------------------------------------------------------------
+ Requires the "SQLite3 ODBC Driver" by Ch. Werner (http://www.ch-werner.de/sqliteodbc/).
+ Two ways to point at the file — pick ONE and use it consistently:
+
+   (A) DSN-less (used below):
+       Driver=SQLite3 ODBC Driver;Database=<ABSOLUTE_PATH_TO_DB>;
+
+   (B) System DSN named EnergoSmartDB:
+       DSN=EnergoSmartDB;
+
+ Adjust the absolute path to wherever the repo lives on the runner machine.
+
+================================================================================
+ ROBIN SOURCE  (paste into PAD: open the flow → Ctrl+A in the workspace →
+                or use the "Edit > Paste" of flow code if your build supports it)
+================================================================================
+
+# --- Guard: fail fast if any required input is empty -------------------------
+IF IsEmpty(ClientID) OR IsEmpty(Consumption) OR IsEmpty(ReadingDate) THEN
+    SET SyncStatus TO $'''ERROR: missing input (ClientID/Consumption/ReadingDate)'''
+    SET RowsAffected TO 0
+    EXIT Code: 1 ErrorMessage: SyncStatus
+END
+
+ON ERROR
+    # Any DB error bubbles here; report it back to the cloud flow and stop.
+    SET SyncStatus TO $'''ERROR: %LastError%'''
+    SET RowsAffected TO 0
+    Database.Close Connection: SQLConnection
+    EXIT Code: 1 ErrorMessage: SyncStatus
+END
+
+# --- 1) Open SQL connection (SQLite via ODBC) --------------------------------
+Database.Connect.Connect ConnectionString: $'''Driver=SQLite3 ODBC Driver;Database=D:\\EnergoSmart\\EnergoSmart-Automatization\\2_Baza_Danych\\energosmart_history.db;''' Connection=> SQLConnection
+
+# --- 2) Execute INSERT -------------------------------------------------------
+# Schema NOT NULL columns: client_id, client_name, sector, reading_date, consumption_kwh.
+# - client_name : reuse ClientID (the Dataverse row carries no separate warehouse name)
+# - sector      : 'Unknown' (sector is not known at sync time)
+# - reading_date: date('%ReadingDate%') normalizes any ISO timestamp to YYYY-MM-DD,
+#                 matching the historical rows and the UNIQUE(client_id, reading_date) key
+# - INSERT OR REPLACE makes re-syncs idempotent instead of throwing on the UNIQUE key.
+Database.ExecuteSQLStatement.Execute Connection: SQLConnection Statement: $'''INSERT OR REPLACE INTO energosmart_history (client_id, client_name, sector, reading_date, consumption_kwh, status, inserted_at) VALUES ('%ClientID%', '%ClientID%', 'Unknown', date('%ReadingDate%'), %Consumption%, 'validated', datetime('now'))''' Timeout: 30 Result=> QueryResult
+
+# --- 3) Close SQL connection -------------------------------------------------
+Database.Close Connection: SQLConnection
+
+# --- 4) Report success -------------------------------------------------------
+SET RowsAffected TO 1
+SET SyncStatus TO $'''OK'''
+
+================================================================================
+ GUI ACTION MAP  (if you prefer building it action-by-action in the designer)
+================================================================================
+ 1. If                          -> condition: ClientID is empty OR ... -> End the flow with error
+ 2. On block error / Try-style  -> wrap DB actions; on error set SyncStatus, Close, stop flow
+ 3. Open SQL connection         -> Connection string = the ODBC string above   -> SQLConnection
+ 4. Execute SQL statement       -> Connection = SQLConnection
+                                   Statement   = the INSERT OR REPLACE above
+                                   Timeout     = 30
+ 5. Close SQL connection        -> Connection = SQLConnection
+ 6. Set variable                -> SyncStatus = "OK", RowsAffected = 1
+
+================================================================================
+ VERIFY (after a test run, from the repo root)
+================================================================================
+   python -c "import sqlite3;c=sqlite3.connect(r'2_Baza_Danych/energosmart_history.db');\
+print(c.execute(\"SELECT client_id,reading_date,consumption_kwh,status FROM \
+energosmart_history WHERE sector='Unknown' ORDER BY inserted_at DESC LIMIT 5\").fetchall())"
+
+ The RPA-inserted rows are the ones with sector = 'Unknown' (and status 'validated').
+================================================================================

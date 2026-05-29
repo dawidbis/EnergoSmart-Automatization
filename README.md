@@ -132,9 +132,10 @@ Once complete, export the solution as a managed `.zip` into
 |---|---|
 | Python data layer | ✅ Done (DB generator, report simulator, tests) |
 | CI/CD | ✅ Done (lint + tests) |
-| Dataverse table | ✅ Done |
-| AI Builder model | 🚧 In progress (custom document model) |
-| Cloud Flows 1 & 2 | ⏳ Planned |
-| Power Apps review UI | ⏳ Planned |
-| Desktop Flow (SQLite bridge) | ⏳ Planned |
-| Power BI dashboard | ⏳ Planned |
+| Dataverse table `Readings` | ✅ Done |
+| AI Builder model | ✅ Done (custom document model, 99%, published) |
+| Cloud Flow 1 (Email Processor) | ✅ Done (🟢/🟡/🔴 paths live) |
+| Power Apps review UI | ✅ Done (Pending Review queue, Akceptuj/Odrzuć) |
+| Cloud Flow 2 (Status → RPA) | 📝 Documented (build in maker portal) |
+| Desktop Flow (SQLite bridge) | 📝 Documented (guide + PAD source ready) |
+| Power BI dashboard | ⏳ Planned (Step 6) |
