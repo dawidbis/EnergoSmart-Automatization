@@ -4,4 +4,5 @@ fpdf2>=2.7.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 # Windows-only: Outlook COM automation for clean.py --target outlook
-pywin32>=306
+# Platform marker keeps Linux/macOS CI from trying to resolve a Windows-only wheel.
+pywin32>=306; sys_platform == "win32"
