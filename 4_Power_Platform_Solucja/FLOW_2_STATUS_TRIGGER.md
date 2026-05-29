@@ -11,7 +11,7 @@ On success it stamps the Dataverse row back to `Status = Synced`.
 > flow first (or as a stub) — see `../5_RPA_Desktop_Flow/README.md`.
 
 ```
-Dataverse row Modified ──► Condition: Status = Accepted ──► Run PAD flow ──► Update row: Synced
+Dataverse row Added/Modified ──► Condition: Status = Accepted ──► Run PAD flow ──► Update row: Synced
 ```
 
 ---
@@ -30,13 +30,15 @@ Building it *inside the solution* keeps it in the export `.zip`.
 ## 2. Configure the trigger
 
 In the trigger card:
-- **Change type**: `Modified`
+- **Change type**: `Added or Modified` (tick **both**)
 - **Table name**: `Readings`
 - **Scope**: `Organization` (any user's edit can trigger it)
 - (Optional) **Select columns** / **Filter rows** to narrow firing — leave blank to start.
 
-> We trigger on **Modified** because the status flips from `Pending Review`/`Accepted`
-> after the row already exists (the Power Apps button patches the existing row).
+> Trigger on **Added *and* Modified**. A 🟢 Green reading is **inserted already
+> `Accepted`** by Flow 1 — an *Add* event — while a 🟡 Yellow reading is accepted
+> later in Power Apps — a *Modify* event. **Modified-only misses every
+> auto-accepted row**, so those readings never reach the local SQL warehouse.
 
 ---
 
@@ -81,8 +83,10 @@ Everything below goes in the **If yes** branch.
    - **Status** = `Synced`
    - **Verified At** = `utcNow()`
 
-> Setting Status to `Synced` (not back to `Accepted`) prevents the Modified trigger
-> from looping — `Synced` fails the Step 3 condition, so the flow stops cleanly.
+> Setting Status to `Synced` (not back to `Accepted`) prevents a loop: the Synced
+> write is itself a *Modify* event that re-fires the trigger, but `Synced` fails
+> the Step 3 condition so the run stops cleanly. (Inserting a `Pending Review` row
+> likewise fires the *Add* trigger but fails the condition — no action taken.)
 
 ---
 
@@ -110,6 +114,7 @@ Everything below goes in the **If yes** branch.
 | Symptom | Fix |
 |---|---|
 | Flow loops forever | Final update must set a status that **fails** the condition (use `Synced`). |
+| Auto-accepted (Green) rows never sync | Change type was **Modified only** — set it to **Added or Modified** so inserted-as-Accepted rows fire it too. |
 | Condition never true | You compared label vs. option value — match types (label↔label or value↔value). |
 | Desktop step can't run | Pick **Attended** + your registered machine; keep PAD open. |
 | Nothing inserted locally | Check the SQLite ODBC string/DSN and the absolute `.db` path in the PAD flow. |

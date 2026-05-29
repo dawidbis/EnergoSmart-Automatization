@@ -7,6 +7,8 @@ echo   EnergoSmart - Send Test Documents (email)
 echo ============================================
 echo.
 echo Emails prepared PDFs to the monitored inbox (SMTP from .env).
+echo Recognises typed docs (GREEN_/YELLOW_/RED_) and pipeline meter
+echo readings (CLIENT_*_MeterReading_*.pdf, counted as GREEN).
 echo.
 
 if not exist ".venv\Scripts\activate.bat" (
@@ -17,20 +19,8 @@ if not exist ".venv\Scripts\activate.bat" (
 call .venv\Scripts\activate.bat
 cd 1_Skrypty_Python
 
-set /p STYPE="Type to send (green/yellow/red/all) [all]: "
-set /p SCOUNT="How many?                         [1]: "
-set /p SDELAY="Delay between emails (seconds)    [0]: "
-if "%STYPE%"==""  set STYPE=all
-if "%SCOUNT%"=="" set SCOUNT=1
-if "%SDELAY%"=="" set SDELAY=0
-
-set /p SDRY="Dry run (list only, do NOT send)? (y/N): "
-echo.
-if /i "%SDRY%"=="y" (
-    python send_documents.py --type %STYPE% --count %SCOUNT% --delay %SDELAY% --dry-run
-) else (
-    python send_documents.py --type %STYPE% --count %SCOUNT% --delay %SDELAY%
-)
+REM Interactive mode: asks which paths, how many of each (number or "all").
+python send_documents.py --interactive
 
 cd ..
 echo.

@@ -87,6 +87,10 @@ After `run_local_pipeline.bat`:
 
 The generated PDFs are also the **training set** for the AI Builder model.
 
+For a guided end-to-end run (data → documents → email → cloud → warehouse check),
+double-click `run_demo.bat`. After an Accepted reading syncs back, confirm it
+landed locally with `healthcheck.bat`.
+
 ---
 
 ## Project Structure
@@ -110,6 +114,8 @@ EnergoSmart-Automatization/
 ├── 6_Power_BI_Dashboard/               # Power BI report + theme
 ├── install.bat                         # Plug & Play installer
 ├── run_local_pipeline.bat              # Generate DB + reports
+├── run_demo.bat                        # Guided end-to-end demo runner
+├── healthcheck.bat                     # Warehouse health-check (RPA-synced rows)
 └── run_tests.bat                       # Run pytest
 ```
 
@@ -139,6 +145,6 @@ Once complete, export the solution as a managed `.zip` into
 | AI Builder model | ✅ Done (custom document model, 99%, published) |
 | Cloud Flow 1 (Email Processor) | ✅ Done (🟢/🟡/🔴 paths live) |
 | Power Apps review UI | ✅ Done (Pending Review queue, Akceptuj/Odrzuć) |
-| Cloud Flow 2 (Status → RPA) | 📝 Documented (build in maker portal) |
-| Desktop Flow (SQLite bridge) | 📝 Documented (guide + PAD source ready) |
+| Cloud Flow 2 (Status → RPA) | ✅ Done (fires on **Added or Modified**, Status = Accepted) |
+| Desktop Flow (SQLite bridge) | ✅ Done (PAD → ODBC → SQLite, proven end to end) |
 | Power BI dashboard | ⏳ Planned (Step 6) |

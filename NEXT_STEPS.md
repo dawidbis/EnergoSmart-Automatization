@@ -1,6 +1,6 @@
 # EnergoSmart — Next Steps
 
-Status snapshot (2026-05-28): **5 of 6 layers done + verification app working.**
+Status snapshot (2026-05-29): **Step 5 RPA bridge live (cloud → local SQLite). Only Power BI (Step 6) remains.**
 
 ✅ Python data layer (+ tests, CI, install.bat)
 ✅ Dataverse table `Readings` (publisher `dbis`, prefix `db_`)
@@ -13,17 +13,21 @@ Key gotchas already solved (reuse the knowledge):
 - Choice reference is simply **`Status.Accepted`** / **`Status.Rejected`** (NOT `'Status (Reading)'...`).
 - AI numeric values come back as **strings** → wrap in `float(...)`.
 - AI output path: `outputs('Process_documents')?['body/responsev2/predictionOutput/labels/<Field>/value']` (and `/confidence`).
+- Flow 2 trigger must be **Added *and* Modified** — 🟢 Green rows are inserted already `Accepted` (an *Add* event), so Modified-only never syncs them.
 
 ---
 
-## NEXT: Step 5 — RPA bridge to local SQLite (headline technical piece)
+## ✅ DONE: Step 5 — RPA bridge to local SQLite (headline technical piece)
 
-Goal: when a reading is **Accepted**, push it into the local `energosmart_history.db` via RPA.
+When a reading is **Accepted**, Flow 2 pushes it into the local
+`energosmart_history.db` via Power Automate Desktop — **proven working end to end**
+(verify with `healthcheck.bat`). Build notes kept below for reference / re-import.
 
 ### 5a. Cloud Flow 2 — `EnergoSmart_OnReadingAccepted`
 1. Power Automate → in solution **EnergoSmart System** → New → Cloud flow → Automated
 2. Trigger: **Dataverse → When a row is added, modified or deleted**
-   - Table: `Readings`, Change type: **Modified**, Scope: **Organization**
+   - Table: `Readings`, Change type: **Added or Modified** (both), Scope: **Organization**
+   - (Green rows are inserted already `Accepted`, so *Modified* only would skip them.)
 3. **Condition**: Status equals **Accepted**
    - (Trigger sends Status as the option value; compare the Status column to Accepted.)
 4. If yes → **Run a flow built with Power Automate Desktop** → `PAD_UpdateSQLDatabase`
@@ -70,5 +74,5 @@ Goal: when a reading is **Accepted**, push it into the local `energosmart_histor
 
 ## Housekeeping
 - **Export solution**: Solutions → EnergoSmart System → Export → Managed → save to `4_Power_Platform_Solucja/EnergoSmart_Solution.zip`.
-- **git push**: local `main` is ahead of `origin/main` — push when ready.
+- ~~git push~~ — done; local `main` is in sync with `origin/main`.
 - Update root `README.md` status table as layers complete.
