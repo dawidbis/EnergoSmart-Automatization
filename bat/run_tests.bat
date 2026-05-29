@@ -1,6 +1,7 @@
 @echo off
 setlocal
 chcp 65001 >nul
+cd /d "%~dp0.."
 
 echo ============================================
 echo   EnergoSmart - Test Suite
@@ -15,7 +16,7 @@ if not exist ".venv\Scripts\activate.bat" (
 )
 call .venv\Scripts\activate.bat
 set "ESRUNID="
-for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -Begin "tests"`) do set "ESRUNID=%%i"
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "1_Skrypty_Python\monitor.ps1" -Begin "tests"`) do set "ESRUNID=%%i"
 
 REM --- Ensure pytest available ---
 python -c "import pytest" >nul 2>&1
@@ -35,6 +36,6 @@ if "%RESULT%"=="0" (
 ) else (
     echo [FAIL] Some tests failed. See output above.
 )
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode %RESULT% >nul
+powershell -NoProfile -ExecutionPolicy Bypass -File "1_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode %RESULT% >nul
 pause
 exit /b %RESULT%

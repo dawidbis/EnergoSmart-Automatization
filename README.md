@@ -68,18 +68,17 @@ Power Apps), **RPA** (Power Automate Desktop) and **Power BI**.
 > Requires Python 3.10+ on Windows.
 
 ```bat
-:: 1. Install (creates .venv, installs deps, sets up .env, installs SQLite ODBC driver)
-install.bat
+:: Easiest - one guided run-through (asks before each step):
+::   install -> configure email -> build DB -> generate -> send
+demo.bat
 
-:: 2. Configure email/SMTP (interactive wizard; optional for local-only use)
-setup_env.bat
-
-:: 3. Generate the historical DB + sample Excel/PDF reports
-run_local_pipeline.bat
-
-:: 4. Run the test suite
-run_tests.bat
+:: Then watch the flow and capture screenshots for the docs:
+monitor.bat
 ```
+
+Individual tools live in `bat\` (install, setup, setup_env, run_local_pipeline,
+generate_invoices, send_documents, run_tests, healthcheck, clean) and can also be
+launched from `monitor.bat`.
 
 After `run_local_pipeline.bat`:
 - `2_Baza_Danych/energosmart_history.db` — historical SQLite database
@@ -87,9 +86,9 @@ After `run_local_pipeline.bat`:
 
 The generated PDFs are also the **training set** for the AI Builder model.
 
-For a guided end-to-end run (data → documents → email → cloud → warehouse check),
-double-click `run_demo.bat`. After an Accepted reading syncs back, confirm it
-landed locally with `healthcheck.bat`.
+For the full run-through, double-click **`demo.bat`** in the repo root. After an
+Accepted reading syncs back, confirm it landed locally with **`monitor.bat`**
+(or `bat\healthcheck.bat`).
 
 ---
 
@@ -112,12 +111,17 @@ EnergoSmart-Automatization/
 │   └── FLOW_2_STATUS_TRIGGER.md        # Cloud Flow 2 (Status -> Desktop Flow)
 ├── 5_RPA_Desktop_Flow/                 # Power Automate Desktop (SQLite bridge)
 ├── 6_Power_BI_Dashboard/               # Power BI report + theme
-├── install.bat                         # Plug & Play installer
-├── run_local_pipeline.bat              # Generate DB + reports
-├── run_demo.bat                        # Guided end-to-end demo runner
-├── healthcheck.bat                     # Warehouse health-check (RPA-synced rows)
-├── monitor.bat                         # Control panel: run-history + launch PAD
-└── run_tests.bat                       # Run pytest
+├── demo.bat                            # Full guided run: install -> env -> DB -> generate -> send
+├── monitor.bat                         # Control panel: dashboard, run-history, launch PAD
+└── bat/                                # Helper tools (also launchable from monitor)
+    ├── install.bat                     # Plug & Play installer
+    ├── setup.bat / setup_env.bat       # RPA-bridge / email (.env) setup
+    ├── run_local_pipeline.bat          # Generate DB + reports
+    ├── generate_invoices.bat           # Make typed test documents
+    ├── send_documents.bat              # Email documents to the inbox
+    ├── healthcheck.bat                 # Warehouse health-check (RPA-synced rows)
+    ├── clean.bat                       # Clean test artifacts / monitor logs
+    └── run_tests.bat                   # Run pytest
 ```
 
 ---

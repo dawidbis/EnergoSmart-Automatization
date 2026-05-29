@@ -1,6 +1,7 @@
 @echo off
 setlocal
 chcp 65001 >nul
+cd /d "%~dp0.."
 
 echo ============================================
 echo   EnergoSmart - Clean Test Artifacts
@@ -19,7 +20,7 @@ if not exist ".venv\Scripts\activate.bat" (
 )
 call .venv\Scripts\activate.bat
 set "ESRUNID="
-for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -Begin "clean"`) do set "ESRUNID=%%i"
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "1_Skrypty_Python\monitor.ps1" -Begin "clean"`) do set "ESRUNID=%%i"
 cd 1_Skrypty_Python
 
 set "TARGET="
@@ -41,6 +42,6 @@ if /i "%CONFIRM%"=="y" (
 set "ESRC=%ERRORLEVEL%"
 
 cd ..
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode %ESRC% >nul
+powershell -NoProfile -ExecutionPolicy Bypass -File "1_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode %ESRC% >nul
 echo.
 pause

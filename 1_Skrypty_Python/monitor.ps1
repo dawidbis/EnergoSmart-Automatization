@@ -65,7 +65,6 @@ $Tasks = [ordered]@{
     'pipeline'    = 'run_local_pipeline.bat'
     'generate'    = 'generate_invoices.bat'
     'send'        = 'send_documents.bat'
-    'demo'        = 'run_demo.bat'
     'tests'       = 'run_tests.bat'
     'healthcheck' = 'healthcheck.bat'
     'clean'       = 'clean.bat'
@@ -240,7 +239,7 @@ function Start-PAD {
 # interactive control panel
 # --------------------------------------------------------------------------- #
 function Start-Task($task) {
-    $bat = Join-Path $Root $Tasks[$task]
+    $bat = Join-Path $Root (Join-Path 'bat' $Tasks[$task])
     if (-not (Test-Path $bat)) { Write-Host "[ERR] $bat not found"; return }
     # The .bat logs its own begin/end, so just launch and wait.
     Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', "`"$bat`"" -Wait

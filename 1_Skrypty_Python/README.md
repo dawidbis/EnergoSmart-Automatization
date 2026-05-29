@@ -21,7 +21,7 @@ the cloud pipeline.
 | `generate_invoices.py` | `generate_invoices.bat` | Generates a chosen number of typed test documents split by Cloud Flow path: **GREEN** (valid → auto-accept), **YELLOW** (zero/spike/drop → manual review), **RED** (flyer/blank → auto-reject). Files are named `GREEN_*` / `YELLOW_*` / `RED_*` so the other tools recognise them. |
 | `send_documents.py` | `send_documents.bat` | Emails prepared PDFs to the monitored inbox via SMTP. Recognises **typed docs** (`GREEN_/YELLOW_/RED_`) **and pipeline meter readings** (`CLIENT_*_MeterReading_*.pdf`, counted as GREEN). Pick **several / one / all paths** and, per path, a **specific count or `all`** (e.g. `--green 3 --yellow all --red 1`). `--interactive` prompts for everything; also `--delay`, `--subject-prefix`, `--dry-run`. |
 | `clean.py` | `clean.bat` | One cleaner for all test artifacts: generated `*.pdf`/`*.xlsx` (`--target files`), the **Microsoft 365** inbox via classic **Outlook COM** (`--target outlook`, since M365 blocks basic-auth IMAP), and **Gmail** Sent + bounced-back mail via **IMAP → Trash** (`--target gmail`), the **monitor run-history** (`--target logs`), or `all`. **Dry run by default**; `--yes` deletes (the `.bat` asks first). Never touches the DB or source. |
-| `run_demo.py` | `run_demo.bat` | **Guided end-to-end runner.** Walks the whole local pipeline in order — setup → DB → documents → send → (cloud) → health-check → clean — asking **Y/n/q before each step**. The one script to drive a full test run. |
+| _(orchestrator)_ | `demo.bat` (repo root) | **Full guided run** for a fresh machine: install → configure email → build DB → generate → send. Calls the `bat\` wrappers in order, asking before each step. |
 | `healthcheck.ps1` | `healthcheck.bat` | Read-only **warehouse health-check** (PowerShell + SQLite ODBC, the same driver the RPA uses): totals, anomalies, status breakdown and the most recent **RPA-synced** rows (`sector='Unknown'`). Confirms an Accepted reading reached the local DB. `-Recent N` to list more. |
 | `monitor.ps1` | `monitor.bat` | **Control panel / monitor.** Logs every wrapper `.bat` run (start / end / exit code / duration) to `logs/run_history.jsonl`, shows tasks **in progress** + recent history ("what each run did"), reads the SQLite warehouse, and can **launch Power Automate Desktop**. `-Watch` = live read-only dashboard; `-LaunchPad`; `-ClearHistory`. History is cleared by `clean.py --target logs`. |
 
@@ -54,7 +54,7 @@ python generate_history_db.py   # 1. build DB
 python simulate_clients.py      # 2. build reports
 ```
 
-Or from the repo root: `run_local_pipeline.bat`
+Or from the repo root: `bat\run_local_pipeline.bat` (or the full `demo.bat`)
 
 ### Operator tools
 
@@ -69,15 +69,16 @@ python clean.py                            # dry run: generated files
 python clean.py --yes                      # delete generated files
 python clean.py --target outlook           # dry run: M365 inbox (Outlook COM)
 python clean.py --target gmail --yes       # Gmail test mail -> Trash
-python clean.py --target all --yes         # files + outlook + gmail
-python run_demo.py                         # guided runner (asks before each step)
+python clean.py --target all --yes         # files + outlook + gmail + logs
 powershell -ExecutionPolicy Bypass -File healthcheck.ps1   # warehouse health-check
 powershell -ExecutionPolicy Bypass -File monitor.ps1       # control panel (history + PAD)
 powershell -ExecutionPolicy Bypass -File monitor.ps1 -Watch  # live read-only dashboard
 ```
 
-Or from the repo root, double-click: `setup.bat`, `setup_env.bat`, `generate_invoices.bat`,
-`send_documents.bat`, `clean.bat`, `run_demo.bat`, `healthcheck.bat`, `monitor.bat`
+Root entry points: **`demo.bat`** (full guided run) and **`monitor.bat`** (control
+panel). The individual wrappers live in **`bat\`**: `install.bat`, `setup.bat`,
+`setup_env.bat`, `run_local_pipeline.bat`, `generate_invoices.bat`,
+`send_documents.bat`, `run_tests.bat`, `healthcheck.bat`, `clean.bat`
 (each prompts interactively).
 
 ## Tests
