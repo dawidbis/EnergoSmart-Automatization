@@ -59,6 +59,9 @@ htmlcov/
 # Power Platform exports (large files, re-download from cloud)
 4_Power_Platform_Solucja/*.zip
 
+# Monitor run-history (runtime data; clear via clean.py --target logs)
+logs/
+
 # Office temp files
 ~$*.xlsx
 ~$*.docx

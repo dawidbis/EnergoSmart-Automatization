@@ -116,6 +116,7 @@ EnergoSmart-Automatization/
 ├── run_local_pipeline.bat              # Generate DB + reports
 ├── run_demo.bat                        # Guided end-to-end demo runner
 ├── healthcheck.bat                     # Warehouse health-check (RPA-synced rows)
+├── monitor.bat                         # Control panel: run-history + launch PAD
 └── run_tests.bat                       # Run pytest
 ```
 

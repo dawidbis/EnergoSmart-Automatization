@@ -8,7 +8,8 @@ echo ============================================
 echo   files   - generated PDFs/XLSX in 3_Dokumenty_Testowe
 echo   outlook - test emails in the M365 inbox (classic Outlook, COM)
 echo   gmail   - test emails in Gmail (Sent + bounced) via IMAP -^> Trash
-echo   all     - files + outlook + gmail
+echo   logs    - monitor run-history (logs\run_history.jsonl)
+echo   all     - files + outlook + gmail + logs
 echo.
 
 if not exist ".venv\Scripts\activate.bat" (
@@ -17,10 +18,12 @@ if not exist ".venv\Scripts\activate.bat" (
     exit /b 1
 )
 call .venv\Scripts\activate.bat
+set "ESRUNID="
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -Begin "clean"`) do set "ESRUNID=%%i"
 cd 1_Skrypty_Python
 
 set "TARGET="
-set /p TARGET=What to clean? [files/outlook/gmail/all] (default files):
+set /p TARGET=What to clean? [files/outlook/gmail/logs/all] (default files):
 if "%TARGET%"=="" set TARGET=files
 
 echo.
@@ -35,7 +38,9 @@ if /i "%CONFIRM%"=="y" (
 ) else (
     echo Aborted. Nothing deleted.
 )
+set "ESRC=%ERRORLEVEL%"
 
 cd ..
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode %ESRC% >nul
 echo.
 pause

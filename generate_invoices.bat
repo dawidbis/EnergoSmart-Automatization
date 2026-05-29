@@ -16,6 +16,8 @@ if not exist ".venv\Scripts\activate.bat" (
     exit /b 1
 )
 call .venv\Scripts\activate.bat
+set "ESRUNID="
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -Begin "generate"`) do set "ESRUNID=%%i"
 cd 1_Skrypty_Python
 
 set /p GREEN="GREEN (valid, auto-accept) count [0]: "
@@ -27,7 +29,9 @@ if "%RED%"==""    set RED=0
 
 echo.
 python generate_invoices.py --green %GREEN% --yellow %YELLOW% --red %RED%
+set "ESRC=%ERRORLEVEL%"
 
 cd ..
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode %ESRC% >nul
 echo.
 pause

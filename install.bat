@@ -35,6 +35,8 @@ if not exist ".venv" (
 
 REM --- Activate venv ---
 call .venv\Scripts\activate.bat
+set "ESRUNID="
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -Begin "install"`) do set "ESRUNID=%%i"
 
 REM --- Install dependencies ---
 echo [..] Upgrading pip ...
@@ -43,6 +45,7 @@ echo [..] Installing runtime dependencies ...
 pip install -r 1_Skrypty_Python\requirements.txt --quiet
 if errorlevel 1 (
     echo [ERROR] Dependency installation failed.
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode 1 >nul
     pause
     exit /b 1
 )
@@ -79,5 +82,7 @@ echo Next steps:
 echo   1. Configure email/SMTP:      setup_env.bat
 echo   2. Generate data + reports:   run_local_pipeline.bat
 echo   3. Run the test suite:        run_tests.bat
+echo   4. Control panel / monitor:   monitor.bat
 echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode 0 >nul
 pause

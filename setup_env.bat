@@ -15,10 +15,14 @@ if not exist ".venv\Scripts\activate.bat" (
     exit /b 1
 )
 call .venv\Scripts\activate.bat
+set "ESRUNID="
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -Begin "setup_env"`) do set "ESRUNID=%%i"
 cd 1_Skrypty_Python
 
 python setup_env.py
+set "ESRC=%ERRORLEVEL%"
 
 cd ..
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp01_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode %ESRC% >nul
 echo.
 pause

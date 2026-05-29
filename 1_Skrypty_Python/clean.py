@@ -12,7 +12,8 @@ clean_outlook.py + clean_gmail.py):
   gmail   - test emails the Gmail sender accumulated (Sent + the rejection
             emails bounced back to Inbox), via IMAP + App Password. Matches are
             moved to Trash (recoverable ~30 days).
-  all     - files + outlook + gmail.
+  logs    - the monitor run-history log (logs/run_history.jsonl).
+  all     - files + outlook + gmail + logs.
 
 Dry run by default; pass --yes to actually delete.
 
@@ -39,6 +40,7 @@ except Exception:
 OUTPUT_DIR = os.getenv('OUTPUT_DIR', '../3_Dokumenty_Testowe')
 PREFIXES = {'green': 'GREEN_', 'yellow': 'YELLOW_', 'red': 'RED_'}
 DEFAULT_SUBJECT = 'EnergoSmart'
+LOG_FILE = Path(__file__).resolve().parent.parent / 'logs' / 'run_history.jsonl'
 
 OL_FOLDER_INBOX = 6   # olFolderInbox
 OL_MAIL_ITEM = 43     # olMail
@@ -80,6 +82,29 @@ def clean_files(path_type, do_delete):
         except OSError as exc:
             print(f'   [warn] {fp.name}: {exc}')
     print(f'[OK] deleted {deleted}/{len(targets)} file(s).')
+    return 0
+
+
+# --------------------------------------------------------------------------- #
+# logs (monitor run-history)
+# --------------------------------------------------------------------------- #
+def clean_logs(do_delete):
+    if not LOG_FILE.exists():
+        print(f'[LOGS] no run history at {LOG_FILE}.')
+        return 0
+    try:
+        lines = sum(1 for _ in LOG_FILE.open(encoding='utf-8', errors='replace'))
+    except OSError:
+        lines = '?'
+    print(f'[LOGS] {LOG_FILE} ({lines} event line(s)).')
+    if not do_delete:
+        print('[DRY-RUN] not deleted (use --yes).')
+        return 0
+    try:
+        LOG_FILE.unlink()
+        print('[OK] run history cleared.')
+    except OSError as exc:
+        print(f'   [warn] {exc}')
     return 0
 
 
@@ -207,7 +232,8 @@ def clean_gmail(subject_kw, do_delete):
 def main():
     parser = argparse.ArgumentParser(
         description='Clean EnergoSmart test artifacts (files / outlook / gmail).')
-    parser.add_argument('--target', choices=['files', 'outlook', 'gmail', 'all'],
+    parser.add_argument('--target',
+                        choices=['files', 'outlook', 'gmail', 'logs', 'all'],
                         default='files', help='what to clean (default: files)')
     parser.add_argument('--type', choices=['green', 'yellow', 'red', 'all'],
                         default='all', help='[files] limit to one path type')
@@ -220,6 +246,9 @@ def main():
     rc = 0
     if args.target in ('files', 'all'):
         rc |= clean_files(args.type, args.yes)
+    if args.target in ('logs', 'all'):
+        print()
+        rc |= clean_logs(args.yes)
     if args.target in ('outlook', 'all'):
         print()
         rc |= clean_outlook(args.subject, args.yes)
