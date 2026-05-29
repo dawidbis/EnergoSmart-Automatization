@@ -211,17 +211,37 @@ function Show-Dashboard {
 # launch Power Automate Desktop
 # --------------------------------------------------------------------------- #
 function Start-PAD {
-    $candidates = @(
-        (Join-Path ${env:ProgramFiles(x86)} 'Power Automate Desktop\PAD.Console.Host.exe'),
-        (Join-Path $env:ProgramFiles 'Power Automate Desktop\PAD.Console.Host.exe'),
-        (Join-Path ${env:ProgramFiles(x86)} 'Power Automate\PAD.Console.Host.exe')
-    )
-    foreach ($exe in $candidates) {
-        if ($exe -and (Test-Path $exe)) {
-            Write-Host "[PAD] launching $exe"
-            Start-Process $exe
-            return
+    # 1) Ensure the machine-runtime Windows service is running. It executes
+    #    cloud-triggered desktop flows in the background (no console needed).
+    $svc = Get-Service -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName -match 'Power Automate' -or $_.Name -match 'UIFlow' } |
+        Select-Object -First 1
+    if ($svc) {
+        if ($svc.Status -ne 'Running') {
+            try {
+                Start-Service $svc.Name -ErrorAction Stop
+                Write-Host "[PAD] started background service '$($svc.DisplayName)'."
+            } catch {
+                Write-Host "[PAD] service '$($svc.DisplayName)' is $($svc.Status) - run monitor as admin to start it." -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "[PAD] machine-runtime service '$($svc.DisplayName)' already running."
         }
+    } else {
+        Write-Host '[PAD] machine-runtime service not found (is Power Automate Desktop installed?).' -ForegroundColor Yellow
+    }
+    # 2) Start the machine runtime / console hidden so the runtime is up + signed in.
+    $candidates = @(
+        (Join-Path ${env:ProgramFiles(x86)} 'Power Automate Desktop\PAD.MachineRuntime.exe'),
+        (Join-Path $env:ProgramFiles 'Power Automate Desktop\PAD.MachineRuntime.exe'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Power Automate Desktop\PAD.Console.Host.exe'),
+        (Join-Path $env:ProgramFiles 'Power Automate Desktop\PAD.Console.Host.exe')
+    )
+    $exe = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+    if ($exe) {
+        Write-Host "[PAD] launching $([System.IO.Path]::GetFileName($exe)) in the background"
+        Start-Process $exe -WindowStyle Hidden
+        return
     }
     try {
         $app = Get-StartApps | Where-Object { $_.Name -match 'Power Automate' } | Select-Object -First 1
@@ -231,8 +251,8 @@ function Start-PAD {
             return
         }
     } catch { }
-    Write-Host '[PAD] Power Automate Desktop not found.' -ForegroundColor Yellow
-    Write-Host '      Install it (Windows Pro + MSI) or open it manually before attended runs.'
+    Write-Host '[PAD] Power Automate Desktop executable not found.' -ForegroundColor Yellow
+    Write-Host '      Attended runs need the machine runtime signed in; true background = unattended (premium).'
 }
 
 # --------------------------------------------------------------------------- #
@@ -258,7 +278,7 @@ function Show-Menu {
             $i++
         }
         Write-Host ''
-        Write-Host '   [ p] launch Power Automate Desktop (PAD)'
+        Write-Host '   [ p] start Power Automate machine runtime (background)'
         Write-Host '   [ r] refresh    [ c] clear history    [ q] quit'
         $choice = Read-Host 'Select'
         switch -Regex ($choice) {

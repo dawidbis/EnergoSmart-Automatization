@@ -1,0 +1,47 @@
+{
+  "name": "EnergoSmart",
+  "dataColors": [
+    "#1B9E5A",
+    "#2F5496",
+    "#E6A700",
+    "#C0392B",
+    "#16A085",
+    "#8E44AD",
+    "#5D6D7E",
+    "#27AE60",
+    "#D35400",
+    "#2980B9"
+  ],
+  "good": "#1B9E5A",
+  "neutral": "#E6A700",
+  "bad": "#C0392B",
+  "maximum": "#1B9E5A",
+  "center": "#E6A700",
+  "minimum": "#C0392B",
+  "null": "#7F8C8D",
+  "background": "#FFFFFF",
+  "secondaryBackground": "#F4F6F7",
+  "foreground": "#1C2833",
+  "tableAccent": "#1B9E5A",
+  "textClasses": {
+    "title":   { "fontFace": "Segoe UI Semibold", "fontSize": 16, "color": "#1C2833" },
+    "header":  { "fontFace": "Segoe UI Semibold", "fontSize": 12, "color": "#2F5496" },
+    "label":   { "fontFace": "Segoe UI", "fontSize": 10, "color": "#1C2833" },
+    "callout": { "fontFace": "Segoe UI Semibold", "fontSize": 28, "color": "#1B9E5A" }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [{ "show": true, "color": { "solid": { "color": "#FFFFFF" } }, "transparency": 0 }],
+        "border": [{ "show": true, "color": { "solid": { "color": "#E5E8E8" } }, "radius": 6 }],
+        "visualHeader": [{ "show": true, "background": { "solid": { "color": "#FFFFFF" } } }],
+        "title": [{ "show": true, "fontColor": { "solid": { "color": "#2F5496" } }, "fontSize": 12, "fontFamily": "Segoe UI Semibold", "alignment": "left" }]
+      }
+    },
+    "page": {
+      "*": {
+        "background": [{ "color": { "solid": { "color": "#F4F6F7" } }, "transparency": 0 }]
+      }
+    }
+  }
+}
