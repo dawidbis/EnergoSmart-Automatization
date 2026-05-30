@@ -16,6 +16,26 @@ The `0.40` threshold is the project-wide anomaly rule — it matches
 deterministic: **GREEN** docs sit within ~±8 % of the printed Monthly Avg,
 **YELLOW** docs deviate by ≥ 45 %.
 
+> **Also fixed here: Client ID vs Client Name.** Older documents printed only a
+> single `Client:` line (the company string), so the model had nothing to map to
+> a real ID and the company name leaked into the Dataverse **Client ID** column.
+> Documents now print **two distinct fields** — `Client ID:` (a contract number
+> like `UM-2024-0044`, the warehouse join key) and `Client Name:` (the company,
+> e.g. `Polnord Group Sp. z o.o.`). Tag them as two separate fields below.
+
+## Fields the model must extract
+
+| AI Builder field | Document line | Dataverse column |
+|---|---|---|
+| `ClientID` | `Client ID:` (e.g. `UM-2024-0044`) | Client ID |
+| `ClientName` | `Client Name:` (company) | Client Name |
+| `Consumption` | `Consumption (kWh):` | Consumption kWh |
+| `MonthlyAvg` | `Monthly Avg (kWh):` | Month Avg kWh |
+| `ReadingDate` | `Reading Date:` | Reading Date |
+
+> The **Client ID** value must equal the warehouse `client_id` (`UM-2024-####`),
+> or the reading won't join to the 24 months of history in SQLite / Power BI.
+
 ---
 
 ## 1. Make fresh training / test documents
@@ -43,11 +63,15 @@ layouts (the cell is in the same place — only the number differs).
 
 In **Power Apps → AI Builder → Models → (your document-processing model) → Edit**:
 
-1. **Fields**: add a new field **`MonthlyAvg`** (type *Text/Number*) next to the
-   existing `ClientID`, `Consumption`, `ReadingDate`.
-2. **Collections / tagging**: open each training document and draw the tag box
-   over the **Monthly Avg (kWh)** value, mapping it to `MonthlyAvg`. Re-tag the
-   whole collection so every doc has all four fields.
+1. **Fields**: make sure the model has all five fields from the table above. Add
+   the missing ones — **`MonthlyAvg`** and **`ClientName`** — next to the existing
+   `ClientID`, `Consumption`, `ReadingDate`.
+2. **Collections / tagging**: open each training document and (re)draw the tag
+   boxes so every field maps to its own line — crucially **`ClientID` over the
+   `Client ID:` value and `ClientName` over the `Client Name:` value** (the old
+   model tagged the company name as the ID), plus `MonthlyAvg` over the
+   **Monthly Avg (kWh)** value. Re-tag the whole collection so every doc has all
+   five fields.
 3. Add the new `YELLOW_*` PDFs to the collection and tag them too (same field
    positions — just anomalous values).
 4. **Train** → wait for it to finish → check the per-field accuracy for
@@ -91,8 +115,11 @@ if(greater(outputs('MonthlyAvg'), 0), div(max(sub(outputs('Consumption'), output
 | `outputs('Consumption')` | is greater than | `0` |
 | `outputs('Deviation')` | is less than or equal to | `0.4` |
 
-- **If yes → 🟢** create the Dataverse row `Status = Accepted`, then invoke
-  `PAD_UpdateSQLDatabase` directly (the accepted reading syncs to SQLite).
+- **If yes → 🟢** create the Dataverse row `Status = Accepted` — mapping **Client
+  ID** ← `ClientID/value` and **Client Name** ← `ClientName/value` (plain text, no
+  `float`) so the ID and company land in their own columns — then invoke
+  `PAD_UpdateSQLDatabase` directly, passing **both** ClientID and ClientName (the
+  accepted reading syncs to SQLite with the real company name).
 - **If no →** nested **Condition**: is the data even readable?
   - `outputs('Consumption')` ≤ `0` **AND** ClientID empty → **🔴 Red**: send the
     rejection email, create no row.

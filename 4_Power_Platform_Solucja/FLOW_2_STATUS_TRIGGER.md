@@ -66,6 +66,7 @@ Everything below goes in the **If yes** branch.
    | Desktop input | Dataverse field |
    |---|---|
    | `ClientID` | Client ID (`db_clientid`) |
+   | `ClientName` | Client Name (`db_clientname`) |
    | `Consumption` | Consumption kWh (`db_consumptionkwh`) |
    | `ReadingDate` | Reading Date (`db_readingdate`) |
 

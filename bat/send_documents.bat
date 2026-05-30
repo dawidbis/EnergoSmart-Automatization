@@ -9,7 +9,7 @@ echo ============================================
 echo.
 echo Emails prepared PDFs to the monitored inbox (SMTP from .env).
 echo Recognises typed docs (GREEN_/YELLOW_/RED_) and pipeline meter
-echo readings (CLIENT_*_MeterReading_*.pdf, counted as GREEN).
+echo readings (*_MeterReading_*.pdf, counted as GREEN).
 echo.
 
 if not exist ".venv\Scripts\activate.bat" (

@@ -6,7 +6,7 @@ monitored inbox so they flow into Cloud Flow 1 (Email Processor).
 
 Two sources of PDFs are recognised and sorted into the three Cloud-Flow paths:
   * typed docs from generate_invoices.py  -> GREEN_* / YELLOW_* / RED_*
-  * pipeline docs from simulate_clients.py -> CLIENT_*_MeterReading_*.pdf
+  * pipeline docs from simulate_clients.py -> *_MeterReading_*.pdf
     (valid readings -> counted as the GREEN / auto-accept path)
   * legacy bad reports                     -> BAD_*  (RED / reject path)
 
@@ -52,7 +52,7 @@ def classify(name):
     """Map a PDF filename to a Cloud-Flow path, or None if not sendable.
 
     GREEN  = valid readings the AI should auto-accept: typed GREEN_* docs and
-             the pipeline's CLIENT_*_MeterReading_*.pdf meter readings.
+             the pipeline's *_MeterReading_*.pdf meter readings.
     YELLOW = typed review-path docs (zero / spike / drop).
     RED    = reject-path docs: typed RED_* and legacy BAD_* reports.
     """

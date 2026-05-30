@@ -47,8 +47,10 @@ When a reading is **Accepted**, Flow 2 pushes it into the local
    INSERT INTO energosmart_history
      (client_id, client_name, sector, reading_date, consumption_kwh, status, inserted_at)
    VALUES
-     ('%ClientID%', '%ClientID%', 'Unknown', '%ReadingDate%', %Consumption%, 'validated', datetime('now'))
+     ('%ClientID%', '%ClientName%', 'Unknown', '%ReadingDate%', %Consumption%, 'validated', datetime('now'))
    ```
+   (`ClientID` = contract no. `UM-2024-####`; `ClientName` = company name, with a
+   PAD fallback to `ClientID` if not passed. See `5_RPA_Desktop_Flow/PAD_kod_zrodlowy.txt`.)
    → **Close SQL connection**.
 5. Paste the clean PAD (Robin) code into `5_RPA_Desktop_Flow/PAD_kod_zrodlowy.txt`.
 

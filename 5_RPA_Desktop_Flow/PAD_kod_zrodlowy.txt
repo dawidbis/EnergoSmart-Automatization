@@ -11,12 +11,16 @@
 --------------------------------------------------------------------------------
  INPUT VARIABLES  (define these in PAD: Variables pane → Input/Output → New input)
 --------------------------------------------------------------------------------
-   ClientID      Text     e.g.  CLIENT_0042   (Dataverse: db_clientid)
-   Consumption   Text     e.g.  12345.67      (Dataverse: db_consumptionkwh)
-   ReadingDate   Text     e.g.  2026-05-28    (Dataverse: db_readingdate)
+   ClientID      Text     e.g.  UM-2024-0042              (Dataverse: db_clientid)
+   ClientName    Text     e.g.  Polnord Group Sp. z o.o.  (Dataverse: db_clientname)
+   Consumption   Text     e.g.  12345.67                  (Dataverse: db_consumptionkwh)
+   ReadingDate   Text     e.g.  2026-05-28                (Dataverse: db_readingdate)
 
  NOTE: Power Automate passes numbers/dates as text into PAD. The SQL below treats
-       ClientID/ReadingDate as quoted text and Consumption as a bare numeric.
+       ClientID/ClientName/ReadingDate as quoted text and Consumption as a bare numeric.
+ NOTE: ClientName is new (the document now carries a separate Client ID vs Client
+       Name). If your flow still passes only 3 inputs, the guard below falls back
+       to ClientID so the old wiring keeps working.
 
 --------------------------------------------------------------------------------
  OUTPUT VARIABLES  (optional, surfaced back to Cloud Flow 2)
@@ -60,6 +64,11 @@ IF IsEmpty(ClientID) OR IsEmpty(Consumption) OR IsEmpty(ReadingDate) THEN
     EXIT Code: 1 ErrorMessage: SyncStatus
 END
 
+# --- Back-compat: if no separate company name was passed, reuse the ID --------
+IF IsEmpty(ClientName) THEN
+    SET ClientName TO ClientID
+END
+
 ON ERROR
     # Any DB error bubbles here; report it back to the cloud flow and stop.
     SET SyncStatus TO $'''ERROR: %LastError%'''
@@ -78,12 +87,13 @@ Database.Connect.Connect ConnectionString: $'''Driver=SQLite3 ODBC Driver;Databa
 
 # --- 3) Execute INSERT -------------------------------------------------------
 # Schema NOT NULL columns: client_id, client_name, sector, reading_date, consumption_kwh.
-# - client_name : reuse ClientID (the Dataverse row carries no separate warehouse name)
-# - sector      : 'Unknown' (sector is not known at sync time)
+# - client_name : ClientName (the real company name; falls back to ClientID above)
+# - sector      : 'Unknown' (kept as the provenance marker for RPA-inserted rows;
+#                 the verify query below filters on it)
 # - reading_date: date('%ReadingDate%') normalizes any ISO timestamp to YYYY-MM-DD,
 #                 matching the historical rows and the UNIQUE(client_id, reading_date) key
 # - INSERT OR REPLACE makes re-syncs idempotent instead of throwing on the UNIQUE key.
-Database.ExecuteSQLStatement.Execute Connection: SQLConnection Statement: $'''INSERT OR REPLACE INTO energosmart_history (client_id, client_name, sector, reading_date, consumption_kwh, status, inserted_at) VALUES ('%ClientID%', '%ClientID%', 'Unknown', date('%ReadingDate%'), %Consumption%, 'validated', datetime('now'))''' Timeout: 30 Result=> QueryResult
+Database.ExecuteSQLStatement.Execute Connection: SQLConnection Statement: $'''INSERT OR REPLACE INTO energosmart_history (client_id, client_name, sector, reading_date, consumption_kwh, status, inserted_at) VALUES ('%ClientID%', '%ClientName%', 'Unknown', date('%ReadingDate%'), %Consumption%, 'validated', datetime('now'))''' Timeout: 30 Result=> QueryResult
 
 # --- 4) Close SQL connection -------------------------------------------------
 Database.Close Connection: SQLConnection

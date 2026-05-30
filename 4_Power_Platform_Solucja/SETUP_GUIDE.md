@@ -91,10 +91,15 @@ Inside the loop, add these sub-actions:
    - Or create custom form processing model in Power Apps
 
 **AI Builder outputs should extract:**
-- Client ID (from document)
+- Client ID (the `Client ID:` contract no. — *not* the company name)
+- Client Name (the `Client Name:` company)
 - Consumption (kWh value)
+- Monthly Avg (kWh value — needed for the anomaly split)
 - Reading Date
 - Confidence score (0-1 or 0-100)
+
+> See [`AI_BUILDER_RETRAIN.md`](AI_BUILDER_RETRAIN.md) for the full field list and
+> how to (re)tag `ClientID` / `ClientName` / `MonthlyAvg`.
 
 #### 2.4.3 Parse AI Output (Optional - for structured data)
 1. **New step** → **Parse JSON**
@@ -137,7 +142,8 @@ Inside the loop, add these sub-actions:
 2. Table: `energosmart_readings`
 3. Fill in columns:
    - **Reading ID**: `concat(AI_ClientID, '_', utcNow())`
-   - **Client ID**: `AI_ClientID`
+   - **Client ID**: `AI_ClientID` (contract no., e.g. `UM-2024-0044`)
+   - **Client Name**: `AI_ClientName` (company name — its own extracted field)
    - **Reading Date**: `AI_Date`
    - **Consumption kWh**: `AI_Consumption`
    - **Status**: `Accepted`
@@ -204,8 +210,8 @@ Inside the loop, add these sub-actions:
 1. Go to your email inbox
 2. Create **new email** to yourself
 3. **Attach** one of the test documents from `3_Dokumenty_Testowe/`:
-   - `CLIENT_0044_Report_20260528.xlsx` (Excel)
-   - OR `CLIENT_0025_MeterReading_20260528.pdf` (PDF)
+   - `UM-2024-0044_Report_20260528.xlsx` (Excel)
+   - OR `UM-2024-0025_MeterReading_20260528.pdf` (PDF)
 4. Send email
 
 ### 3.2 Monitor Flow Execution
@@ -266,7 +272,7 @@ Inside the loop, add these sub-actions:
 
 ## File References
 - Flow definition: `Flow_Blueprint_EmailProcessor.json` (reference only)
-- Test documents: `../3_Dokumenty_Testowe/CLIENT_*.xlsx` and `*.pdf`
+- Test documents: `../3_Dokumenty_Testowe/*_Report_*.xlsx` and `*.pdf`
 - Database: `../2_Baza_Danych/energosmart_history.db`
 
 ---

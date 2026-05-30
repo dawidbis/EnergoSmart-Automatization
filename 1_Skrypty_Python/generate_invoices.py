@@ -56,13 +56,14 @@ def _history_rows(readings, limit=4):
     return [(r['reading_date'], r['consumption_kwh']) for r in readings[1:1 + limit]]
 
 
-def write_meter_pdf(path, client_name, sector, reading_date,
+def write_meter_pdf(path, client_id, client_name, sector, reading_date,
                     consumption, month_avg, history):
     """Write a meter-reading PDF matching the AI Builder training layout."""
     pdf = EnergyReportPDF()
     pdf.add_page()
     pdf.set_font('Arial', 'B', 11)
-    pdf.cell(0, 8, f"Client: {client_name}", 0, 1)
+    pdf.cell(0, 8, f"Client ID: {client_id}", 0, 1)
+    pdf.cell(0, 8, f"Client Name: {client_name}", 0, 1)
     pdf.cell(0, 8, f"Sector: {sector}", 0, 1)
     pdf.set_font('Arial', '', 10)
     pdf.ln(3)
@@ -96,8 +97,8 @@ def make_green(clients, index):
     consumption = month_avg * random.uniform(0.92, 1.08)
     path = os.path.join(OUTPUT_DIR, f"GREEN_{client_id}_{index:02d}.pdf")
     return write_meter_pdf(
-        path, latest['client_name'], latest['sector'], latest['reading_date'],
-        consumption, month_avg, _history_rows(readings),
+        path, latest['client_id'], latest['client_name'], latest['sector'],
+        latest['reading_date'], consumption, month_avg, _history_rows(readings),
     )
 
 
@@ -122,8 +123,8 @@ def make_yellow(clients, index, kind=None):
         consumption = month_avg * under
     path = os.path.join(OUTPUT_DIR, f"YELLOW_{kind}_{client_id}_{index:02d}.pdf")
     return write_meter_pdf(
-        path, latest['client_name'], latest['sector'], latest['reading_date'],
-        consumption, month_avg, _history_rows(readings),
+        path, latest['client_id'], latest['client_name'], latest['sector'],
+        latest['reading_date'], consumption, month_avg, _history_rows(readings),
     )
 
 

@@ -97,7 +97,8 @@ def generate_pdf_report(client_id, readings):
 
     # Client info
     pdf.set_font('Arial', 'B', 11)
-    pdf.cell(0, 8, f"Client: {readings[0]['client_name']}", 0, 1)
+    pdf.cell(0, 8, f"Client ID: {readings[0]['client_id']}", 0, 1)
+    pdf.cell(0, 8, f"Client Name: {readings[0]['client_name']}", 0, 1)
     pdf.cell(0, 8, f"Sector: {readings[0]['sector']}", 0, 1)
     pdf.set_font('Arial', '', 10)
     pdf.ln(3)

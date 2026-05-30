@@ -89,12 +89,15 @@ Driver=SQLite3 ODBC Driver;Database=D:\EnergoSmart\EnergoSmart-Automatization\2_
 ## Step 3 — Build the desktop flow `PAD_UpdateSQLDatabase`
 
 1. PAD → **New flow** → name `PAD_UpdateSQLDatabase`.
-2. **Variables** pane → **Input/Output variables** → add three **inputs**:
+2. **Variables** pane → **Input/Output variables** → add these **inputs**:
    | Variable | Type | Example |
    |---|---|---|
-   | `ClientID` | Text | `CLIENT_0042` |
+   | `ClientID` | Text | `UM-2024-0042` |
+   | `ClientName` | Text | `Polnord Group Sp. z o.o.` |
    | `Consumption` | Text | `12345.67` |
    | `ReadingDate` | Text | `2026-05-28` |
+   `ClientName` is new (the document now has a separate Client ID vs Client Name);
+   the flow falls back to `ClientID` if it's empty, so 3-input flows still work.
    Optionally add **outputs** `SyncStatus` (Text) and `RowsAffected` (Numeric).
 3. Recreate the logic from **`PAD_kod_zrodlowy.txt`** — either paste the Robin
    source or build the actions via the **GUI action map** at the bottom of that file:
@@ -112,9 +115,9 @@ are `NOT NULL`. The flow fills them as:
 
 | Column | Source |
 |---|---|
-| `client_id` | input `ClientID` |
-| `client_name` | input `ClientID` (Dataverse row has no separate warehouse name) |
-| `sector` | `'Unknown'` (sector unknown at sync time) |
+| `client_id` | input `ClientID` (contract no., e.g. `UM-2024-0042`) |
+| `client_name` | input `ClientName` (company; falls back to `ClientID` if empty) |
+| `sector` | `'Unknown'` (provenance marker for RPA-inserted rows) |
 | `reading_date` | `date(ReadingDate)` — normalized to `YYYY-MM-DD` |
 | `consumption_kwh` | input `Consumption` |
 | `status` | `'validated'` |
@@ -131,7 +134,7 @@ See **`../4_Power_Platform_Solucja/FLOW_2_STATUS_TRIGGER.md`**. Flow 2:
 1. triggers on Dataverse row **Modified**,
 2. checks `Status = Accepted`,
 3. calls **Run a flow built with Power Automate Desktop → `PAD_UpdateSQLDatabase`**
-   passing `ClientID`, `Consumption`, `ReadingDate`,
+   passing `ClientID`, `ClientName`, `Consumption`, `ReadingDate`,
 4. on success sets the row `Status = Synced`, `Verified At = utcNow()`.
 
 > **Student / dev tenant note:** desktop flows here usually run **attended**.

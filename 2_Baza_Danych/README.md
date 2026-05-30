@@ -12,8 +12,8 @@ back into — the "bridge" between the cloud and the legacy on-prem database.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | INTEGER PK AUTOINCREMENT | |
-| `client_id` | TEXT NOT NULL | e.g. `CLIENT_0042` |
-| `client_name` | TEXT NOT NULL | e.g. `FabrykaChemiczna_42` |
+| `client_id` | TEXT NOT NULL | contract no., e.g. `UM-2024-0042` (join key) |
+| `client_name` | TEXT NOT NULL | company, e.g. `Polnord Group Sp. z o.o.` |
 | `sector` | TEXT NOT NULL | one of 7 sectors |
 | `reading_date` | DATE NOT NULL | |
 | `consumption_kwh` | REAL NOT NULL | |

@@ -27,15 +27,38 @@ SECTOR_TEMPLATES = {
     'Hotel': {'min': 2000, 'max': 8000, 'variance': 0.12},
 }
 
+# Building blocks for realistic-looking company names. The (prefix, suffix) pair
+# is unique per client index, so 150 clients get 150 distinct names while the
+# contract-style id stays the join key across Dataverse / SQLite / Power BI.
+COMPANY_PREFIXES = [
+    'Polnord', 'Stalbud', 'Termika', 'Vitalux', 'Nordkom', 'Ekos', 'Polmar',
+    'Interbud', 'Unitex', 'Prokom', 'Geomar', 'Aerolux', 'Hydropol', 'Solaris',
+    'Baltic', 'Karpaty', 'Wislan', 'Odratrans', 'Lechpol', 'Piast', 'Korona',
+    'Atlas', 'Orion', 'Helios', 'Forte', 'Vesta', 'Arena', 'Magnum', 'Prima',
+    'Centrum',
+]
+COMPANY_SUFFIXES = [
+    'Group', 'Invest', 'Industries', 'Logistic', 'Trade', 'Systems', 'Tech',
+    'Energy', 'Holding', 'Serwis', 'Plus', 'Polska', 'Park', 'Development',
+]
+LEGAL_FORMS = ['Sp. z o.o.', 'S.A.', 'Sp. j.', 'Sp. k.']
+
+def company_name(i):
+    """Deterministic, unique, realistic-looking company name for client index i."""
+    prefix = COMPANY_PREFIXES[i % len(COMPANY_PREFIXES)]
+    suffix = COMPANY_SUFFIXES[(i // len(COMPANY_PREFIXES)) % len(COMPANY_SUFFIXES)]
+    legal = LEGAL_FORMS[i % len(LEGAL_FORMS)]
+    return f'{prefix} {suffix} {legal}'
+
 def generate_clients():
-    """Generate realistic client profiles"""
+    """Generate realistic client profiles (contract-style ID + company name)."""
     clients = []
     for i in range(NUM_CLIENTS):
         sector = random.choice(list(SECTOR_TEMPLATES.keys()))
         template = SECTOR_TEMPLATES[sector]
         client = {
-            'id': f'CLIENT_{i+1:04d}',
-            'name': f'{sector.replace(" ", "")}_{i+1}',
+            'id': f'UM-2024-{i+1:04d}',        # contract / agreement number (join key)
+            'name': company_name(i),           # human-readable company name
             'sector': sector,
             'baseline': random.uniform(template['min'], template['max']),
             'variance': template['variance'],

@@ -92,8 +92,10 @@ Inside loop:
    - Document: `AttachmentContent`
    - Model: Use pre-built "Invoice Processing" or custom OCR model
    - Outputs:
-     - `AI_ClientID`
+     - `AI_ClientID` (contract no., not the company name)
+     - `AI_ClientName` (company name)
      - `AI_Consumption`
+     - `AI_MonthlyAvg` (for the anomaly split)
      - `AI_Confidence`
      - `AI_Date`
 
