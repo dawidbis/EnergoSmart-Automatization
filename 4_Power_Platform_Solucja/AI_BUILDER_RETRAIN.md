@@ -91,14 +91,20 @@ wrap every value in `float(...)` (see `../NEXT_STEPS.md` gotchas). These are
 Power Automate **workflow expressions** (comma-separated) — *not* Power Fx, so no
 Polish-locale `;` here.
 
+> **Guard with `empty()`, not `coalesce()`.** The Compose actions run for *every*
+> document, including 🔴 Red ones (a flyer has no Consumption). A missing field
+> comes back as an **empty string `''`**, which `coalesce` does *not* replace
+> (it only swaps `null`), so `float('')` throws *InvalidTemplate*. `empty()`
+> catches both `null` and `''`, so default it to `'0'` before `float`.
+
 **Compose `Consumption`:**
 ```
-float(coalesce(outputs('Process_documents')?['body/responsev2/predictionOutput/labels/Consumption/value'], '0'))
+float(if(empty(outputs('Process_documents')?['body/responsev2/predictionOutput/labels/Consumption/value']), '0', outputs('Process_documents')?['body/responsev2/predictionOutput/labels/Consumption/value']))
 ```
 
 **Compose `MonthlyAvg`:**
 ```
-float(coalesce(outputs('Process_documents')?['body/responsev2/predictionOutput/labels/MonthlyAvg/value'], '0'))
+float(if(empty(outputs('Process_documents')?['body/responsev2/predictionOutput/labels/MonthlyAvg/value']), '0', outputs('Process_documents')?['body/responsev2/predictionOutput/labels/MonthlyAvg/value']))
 ```
 
 **Compose `Deviation`** (WDL has no `abs`; `max(a-b, b-a)` gives `|a-b|`, and we
