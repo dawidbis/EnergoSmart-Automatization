@@ -12,14 +12,16 @@
   - Call AI Builder for OCR/data extraction
   - Logic: Green/Yellow/Red path
        │
-       ├──→ [Green] Auto-Accept (Confidence > 85%)
+       ├──→ [Green] Auto-Accept (Confidence OK AND deviation <= 40%)
        │         ↓
        │    [Dataverse] Status = "Accepted"
        │         ↓
-       │    [Cloud Flow 2] Trigger → Desktop Flow
+       │    [Power Automate Desktop] PAD_UpdateSQLDatabase → SQLite
+       │       (called from Flow 1's Accept branch; manual accepts in
+       │        Power Apps also route here, so both paths sync)
        │
-       ├──→ [Yellow] Manual Review (Confidence < 85% OR Anomaly)
-       │         ↓
+       ├──→ [Yellow] Manual Review (low Confidence OR deviation > 40%)
+       │         ↓        |Consumption - MonthlyAvg| / MonthlyAvg  (see AI_BUILDER_RETRAIN.md)
        │    [Dataverse] Status = "Pending Review"
        │         ↓
        │    [Power Apps] User verifies

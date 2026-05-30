@@ -13,7 +13,8 @@ Key gotchas already solved (reuse the knowledge):
 - Choice reference is simply **`Status.Accepted`** / **`Status.Rejected`** (NOT `'Status (Reading)'...`).
 - AI numeric values come back as **strings** → wrap in `float(...)`.
 - AI output path: `outputs('Process_documents')?['body/responsev2/predictionOutput/labels/<Field>/value']` (and `/confidence`).
-- Flow 2 trigger must be **Added *and* Modified** — 🟢 Green rows are inserted already `Accepted` (an *Add* event), so Modified-only never syncs them.
+- Sync on accept: Flow 1's Accept branch calls `PAD_UpdateSQLDatabase` **directly**, so AI auto-accepts and manual accepts both reach SQLite (no row stuck at `Accepted`). This replaced relying on a Flow 2 *Add*-trigger. The standalone Flow 2 (Added *and* Modified) remains documented as the alternative.
+- AI numbers are **strings** and Power Automate WDL has **no `abs`** — use `max(a-b, b-a)` for `|a-b|` and guard divide-by-zero (see `AI_BUILDER_RETRAIN.md`).
 
 ---
 
@@ -64,7 +65,7 @@ When a reading is **Accepted**, Flow 2 pushes it into the local
 ---
 
 ## Optional enhancements (portfolio polish)
-- **Real anomaly detection** (true 🟡 for value spikes): add a `MonthlyAvg` field to the AI model (re-tag + retrain + republish), then in Flow 1 compare `float(Consumption) vs float(MonthlyAvg)` — deviation > X% → Pending Review. Current flow only flags low-confidence / non-positive.
+- **Real anomaly detection** (true 🟡 for value spikes) — *local side done, AI retrain pending*: docs already print **Monthly Avg (kWh)**; the generator now makes GREEN within ±8% and YELLOW ≥45% off the average (`generate_invoices.py`, `ANOMALY_THRESHOLD=0.40`). Remaining: add a `MonthlyAvg` field to the AI model (re-tag + retrain + republish) and wire the deviation condition into Flow 1. Step-by-step + exact expressions: [`4_Power_Platform_Solucja/AI_BUILDER_RETRAIN.md`](4_Power_Platform_Solucja/AI_BUILDER_RETRAIN.md).
 - **Excel + jpg/png** attachment paths in Flow 1 (currently PDF-only; Form type = pdf).
 - **Attachment preview** in the app: save the email attachment to a Dataverse File column / SharePoint and show it on the form so the verifier sees the source document.
 - **Button visibility**: show Akceptuj/Odrzuć only when Status = Pending Review (`Visible` = `Self.Selected.Item.Status = Status.'Pending Review'`).

@@ -4,12 +4,18 @@ EnergoSmart - Typed test-document (invoice / meter-reading) generator.
 Generates a user-specified number of text-layer PDF documents, split by the
 Cloud Flow decision paths so you can exercise every branch end-to-end:
 
-  GREEN  - valid reading, Client ID present, Consumption > 0, in normal range
+  GREEN  - valid reading, Client ID present, Consumption near the Monthly Avg
            -> Cloud Flow auto-accepts (Status = Accepted)
-  YELLOW - valid meter-reading layout but suspicious value (zero / spike / drop)
+  YELLOW - valid meter-reading layout but Consumption deviates from Monthly Avg
+           by more than ANOMALY_THRESHOLD (zero / spike / drop)
            -> Cloud Flow routes to manual review (Status = Pending Review)
   RED    - missing critical data (no Client ID, e.g. a promo flyer)
            -> Cloud Flow auto-rejects (sends rejection email)
+
+The Green/Yellow split mirrors the anomaly rule the (retrained) AI Builder model
++ Cloud Flow 1 apply downstream: extract both Consumption and Monthly Avg, then
+flag |Consumption - MonthlyAvg| / MonthlyAvg > ANOMALY_THRESHOLD for review. The
+same 0.40 threshold is used by generate_history_db.py's anomaly_flag.
 
 Reuses the PDF layout + DB helpers from simulate_clients.py, so GREEN/YELLOW
 documents look exactly like the AI Builder training documents.
@@ -37,6 +43,10 @@ load_dotenv()
 
 DB_PATH = os.getenv('DB_PATH', '../2_Baza_Danych/energosmart_history.db')
 OUTPUT_DIR = os.getenv('OUTPUT_DIR', '../3_Dokumenty_Testowe')
+
+# Deviation of Consumption from the Monthly Avg above which a reading is an
+# anomaly (-> Yellow / Pending Review). Matches generate_history_db.py.
+ANOMALY_THRESHOLD = float(os.getenv('ANOMALY_THRESHOLD', '0.40'))
 
 YELLOW_KINDS = ('zero', 'spike', 'drop')
 
@@ -74,36 +84,42 @@ def write_meter_pdf(path, client_name, sector, reading_date,
 
 
 def make_green(clients, index):
-    """A clean, valid reading -> auto-accept (Green path)."""
+    """A clean reading, Consumption near the Monthly Avg -> auto-accept (Green)."""
     client_id, _ = random.choice(clients)
     readings = fetch_recent_readings(client_id, num_months=6)
     if not readings:
         return None
     latest = readings[0]
     month_avg = latest.get('month_avg_kwh') or latest['consumption_kwh']
+    # Keep Consumption comfortably inside the anomaly band (~+/-8%) so Flow 1's
+    # |Consumption - MonthlyAvg| / MonthlyAvg check stays well under the threshold.
+    consumption = month_avg * random.uniform(0.92, 1.08)
     path = os.path.join(OUTPUT_DIR, f"GREEN_{client_id}_{index:02d}.pdf")
     return write_meter_pdf(
         path, latest['client_name'], latest['sector'], latest['reading_date'],
-        latest['consumption_kwh'], month_avg, _history_rows(readings),
+        consumption, month_avg, _history_rows(readings),
     )
 
 
 def make_yellow(clients, index, kind=None):
-    """Valid layout but a suspicious value -> manual review (Yellow path)."""
+    """Consumption far from the Monthly Avg (> threshold) -> manual review (Yellow)."""
     client_id, _ = random.choice(clients)
     readings = fetch_recent_readings(client_id, num_months=6)
     if not readings:
         return None
     latest = readings[0]
-    base = latest['consumption_kwh']
-    month_avg = latest.get('month_avg_kwh') or base
+    month_avg = latest.get('month_avg_kwh') or latest['consumption_kwh']
     kind = kind or random.choice(YELLOW_KINDS)
+    # Each kind deviates from month_avg by clearly more than ANOMALY_THRESHOLD,
+    # so the retrained model + Flow 1 anomaly check route it to Pending Review.
+    over = 1 + ANOMALY_THRESHOLD + random.uniform(0.2, 1.6)   # >= 1.6x  (spike)
+    under = 1 - ANOMALY_THRESHOLD - random.uniform(0.05, 0.2)  # <= 0.55x (drop)
     if kind == 'zero':
         consumption = 0.0
     elif kind == 'spike':
-        consumption = base * random.uniform(2.5, 4.0)
+        consumption = month_avg * over
     else:  # drop
-        consumption = base * random.uniform(0.2, 0.5)
+        consumption = month_avg * under
     path = os.path.join(OUTPUT_DIR, f"YELLOW_{kind}_{client_id}_{index:02d}.pdf")
     return write_meter_pdf(
         path, latest['client_name'], latest['sector'], latest['reading_date'],

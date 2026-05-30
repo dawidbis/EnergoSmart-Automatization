@@ -116,14 +116,20 @@ Inside the loop, add these sub-actions:
 
 ### 2.5 Add Action 3: Green/Yellow/Red Path Logic
 
+> **Anomaly-aware split (recommended).** Extract **MonthlyAvg** as well and route
+> on a real anomaly, not just confidence — full steps + expressions in
+> [`AI_BUILDER_RETRAIN.md`](AI_BUILDER_RETRAIN.md). The condition below then gains
+> a third clause: `Deviation` (`|Consumption - MonthlyAvg| / MonthlyAvg`) **≤ 0.4**.
+
 #### Green Path (Auto-Accept)
 
 1. **New step** → **Condition**
-2. Set condition:
+2. Set condition (all true):
    ```
    AND
-   - AI Confidence (from parser) is greater than 0.85
+   - AI Confidence (from parser) is greater than or equal to 0.80
    - Consumption is greater than 0
+   - Deviation is less than or equal to 0.40        (anomaly-aware split)
    ```
 
 **If True (Auto-Accept):**
@@ -138,7 +144,13 @@ Inside the loop, add these sub-actions:
    - **AI Confidence**: `multiply(AI_Confidence, 100)` (convert to 0-100)
    - **Source File URL**: attachment content URL
 
-2. **New step** → **Send an email (V2)**
+2. **New step** → **Run a flow built with Power Automate Desktop** →
+   `PAD_UpdateSQLDatabase` (Attended), passing Client ID / Consumption / Reading
+   Date. Calling PAD **here, in Flow 1's Accept branch**, means AI auto-accepts
+   sync to SQLite immediately — exactly like a manual accept — so no row gets
+   stuck at `Accepted`. (After success, optionally stamp the row `Synced`.)
+
+3. **New step** → **Send an email (V2)**
    - To: `From` (email trigger output)
    - Subject: `EnergoSmart: Reading accepted`
    - Body: `Your energy reading has been accepted and is being processed.`
