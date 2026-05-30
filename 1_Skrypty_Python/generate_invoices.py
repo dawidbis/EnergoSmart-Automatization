@@ -32,6 +32,7 @@ import os
 import random
 
 from dotenv import load_dotenv
+from fpdf.enums import XPos, YPos
 
 from simulate_clients import (
     EnergyReportPDF,
@@ -61,25 +62,33 @@ def write_meter_pdf(path, client_id, client_name, sector, reading_date,
     """Write a meter-reading PDF matching the AI Builder training layout."""
     pdf = EnergyReportPDF()
     pdf.add_page()
-    pdf.set_font('Arial', 'B', 11)
-    pdf.cell(0, 8, f"Client ID: {client_id}", 0, 1)
-    pdf.cell(0, 8, f"Client Name: {client_name}", 0, 1)
-    pdf.cell(0, 8, f"Sector: {sector}", 0, 1)
-    pdf.set_font('Arial', '', 10)
+    pdf.set_font('Helvetica', 'B', 11)
+    pdf.cell(0, 8, f"Client ID: {client_id}", border=0,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, f"Client Name: {client_name}", border=0,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, f"Sector: {sector}", border=0,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font('Helvetica', '', 10)
     pdf.ln(3)
     pdf.cell(70, 8, 'Reading Date:', 1)
-    pdf.cell(0, 8, str(reading_date), 1, 1)
+    pdf.cell(0, 8, str(reading_date), border=1,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(70, 8, 'Consumption (kWh):', 1)
-    pdf.cell(0, 8, f"{consumption:.2f}", 1, 1)
+    pdf.cell(0, 8, f"{consumption:.2f}", border=1,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(70, 8, 'Monthly Avg (kWh):', 1)
-    pdf.cell(0, 8, f"{month_avg:.2f}", 1, 1)
+    pdf.cell(0, 8, f"{month_avg:.2f}", border=1,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(5)
-    pdf.set_font('Arial', 'B', 10)
-    pdf.cell(0, 8, 'Previous Readings (Reference)', 0, 1)
-    pdf.set_font('Arial', '', 9)
+    pdf.set_font('Helvetica', 'B', 10)
+    pdf.cell(0, 8, 'Previous Readings (Reference)', border=0,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font('Helvetica', '', 9)
     for date_value, value in history:
         pdf.cell(60, 7, str(date_value), 1)
-        pdf.cell(0, 7, f"{value:.2f}", 1, 1)
+        pdf.cell(0, 7, f"{value:.2f}", border=1,
+                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.output(path)
     return path
 
@@ -134,22 +143,26 @@ def make_red(index, kind=None):
     pdf = EnergyReportPDF()
     pdf.add_page()
     if kind == 'flyer':
-        pdf.set_font('Arial', 'B', 20)
+        pdf.set_font('Helvetica', 'B', 20)
         pdf.ln(20)
-        pdf.cell(0, 15, 'MEGA PROMOCJA WIOSENNA!', 0, 1, 'C')
-        pdf.set_font('Arial', '', 14)
+        pdf.cell(0, 15, 'MEGA PROMOCJA WIOSENNA!', border=0, align='C',
+                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.set_font('Helvetica', '', 14)
         pdf.ln(5)
-        pdf.cell(0, 10, 'Tylko teraz: panele fotowoltaiczne -40%', 0, 1, 'C')
-        pdf.cell(0, 10, 'Zadzwon i odbierz darmowa wycene!', 0, 1, 'C')
+        pdf.cell(0, 10, 'Tylko teraz: panele fotowoltaiczne -40%', border=0, align='C',
+                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 10, 'Zadzwon i odbierz darmowa wycene!', border=0, align='C',
+                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(10)
-        pdf.set_font('Arial', '', 11)
+        pdf.set_font('Helvetica', '', 11)
         pdf.multi_cell(0, 8,
                        'Oferta ograniczona czasowo. Promocja nie laczy sie z '
                        'innymi rabatami. Skontaktuj sie z naszym doradca.')
     else:  # blank / unreadable - no Client ID, no Consumption
-        pdf.set_font('Arial', 'B', 12)
-        pdf.cell(0, 10, 'Notatka wewnetrzna', 0, 1)
-        pdf.set_font('Arial', '', 10)
+        pdf.set_font('Helvetica', 'B', 12)
+        pdf.cell(0, 10, 'Notatka wewnetrzna', border=0,
+                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.set_font('Helvetica', '', 10)
         pdf.multi_cell(0, 8,
                        'Dokument bez pol odczytu - brak identyfikatora klienta '
                        'oraz wartosci zuzycia. Powinien trafic na sciezke '

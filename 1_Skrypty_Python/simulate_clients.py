@@ -14,6 +14,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import pandas as pd
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 
 load_dotenv()
 
@@ -25,16 +26,18 @@ class EnergyReportPDF(FPDF):
     """Custom PDF for energy meter readings"""
 
     def header(self):
-        self.set_font('Arial', 'B', 16)
-        self.cell(0, 10, 'EnergoSmart - Monthly Energy Report', 0, 1, 'C')
-        self.set_font('Arial', '', 10)
-        self.cell(0, 5, f'Generated: {datetime.now().strftime("%Y-%m-%d")}', 0, 1, 'C')
+        self.set_font('Helvetica', 'B', 16)
+        self.cell(0, 10, 'EnergoSmart - Monthly Energy Report', border=0, align='C',
+                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.set_font('Helvetica', '', 10)
+        self.cell(0, 5, f'Generated: {datetime.now().strftime("%Y-%m-%d")}', border=0,
+                  align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.ln(5)
 
     def footer(self):
         self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+        self.set_font('Helvetica', 'I', 8)
+        self.cell(0, 10, f'Page {self.page_no()}', border=0, align='C')
 
 def fetch_recent_readings(client_id, num_months=6):
     """Fetch recent readings for a client"""
@@ -93,33 +96,41 @@ def generate_pdf_report(client_id, readings):
 
     pdf = EnergyReportPDF()
     pdf.add_page()
-    pdf.set_font('Arial', '', 10)
+    pdf.set_font('Helvetica', '', 10)
 
     # Client info
-    pdf.set_font('Arial', 'B', 11)
-    pdf.cell(0, 8, f"Client ID: {readings[0]['client_id']}", 0, 1)
-    pdf.cell(0, 8, f"Client Name: {readings[0]['client_name']}", 0, 1)
-    pdf.cell(0, 8, f"Sector: {readings[0]['sector']}", 0, 1)
-    pdf.set_font('Arial', '', 10)
+    pdf.set_font('Helvetica', 'B', 11)
+    pdf.cell(0, 8, f"Client ID: {readings[0]['client_id']}", border=0,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, f"Client Name: {readings[0]['client_name']}", border=0,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, f"Sector: {readings[0]['sector']}", border=0,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font('Helvetica', '', 10)
     pdf.ln(3)
 
     # Readings table
     latest = readings[0]
     pdf.cell(70, 8, 'Reading Date:', 1)
-    pdf.cell(0, 8, str(latest['reading_date']), 1, 1)
+    pdf.cell(0, 8, str(latest['reading_date']), border=1,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(70, 8, 'Consumption (kWh):', 1)
-    pdf.cell(0, 8, f"{latest['consumption_kwh']:.2f}", 1, 1)
+    pdf.cell(0, 8, f"{latest['consumption_kwh']:.2f}", border=1,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(70, 8, 'Monthly Avg (kWh):', 1)
-    pdf.cell(0, 8, f"{latest['month_avg_kwh']:.2f}", 1, 1)
+    pdf.cell(0, 8, f"{latest['month_avg_kwh']:.2f}", border=1,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.ln(5)
-    pdf.set_font('Arial', 'B', 10)
-    pdf.cell(0, 8, 'Previous Readings (Reference)', 0, 1)
-    pdf.set_font('Arial', '', 9)
+    pdf.set_font('Helvetica', 'B', 10)
+    pdf.cell(0, 8, 'Previous Readings (Reference)', border=0,
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font('Helvetica', '', 9)
 
     for i, reading in enumerate(readings[1:6]):
         pdf.cell(60, 7, str(reading['reading_date']), 1)
-        pdf.cell(0, 7, f"{reading['consumption_kwh']:.2f}", 1, 1)
+        pdf.cell(0, 7, f"{reading['consumption_kwh']:.2f}", border=1,
+                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.output(filename)
     return filename

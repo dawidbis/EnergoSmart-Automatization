@@ -7,11 +7,15 @@ Simulates historical data for 150 business clients over 24 months.
 import sqlite3
 import random
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Python 3.12 deprecates sqlite3's implicit date adapter; register an explicit
+# ISO-8601 adapter so date values insert cleanly without a DeprecationWarning.
+sqlite3.register_adapter(date, lambda d: d.isoformat())
 
 DB_PATH = os.getenv('DB_PATH', '../2_Baza_Danych/energosmart_history.db')
 NUM_RECORDS = int(os.getenv('NUM_RECORDS', 500000))
