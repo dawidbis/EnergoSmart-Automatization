@@ -21,21 +21,10 @@ for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass
 
 cd 1_Skrypty_Python
 
-echo [1/2] Generating historical database (SQLite) ...
+echo [1/1] Generating historical database (SQLite) ...
 python generate_history_db.py
 if errorlevel 1 (
     echo [ERROR] Database generation failed.
-    cd ..
-    powershell -NoProfile -ExecutionPolicy Bypass -File "1_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode 1 >nul
-    pause
-    exit /b 1
-)
-echo.
-
-echo [2/2] Generating client reports (Excel + PDF) ...
-python simulate_clients.py
-if errorlevel 1 (
-    echo [ERROR] Report generation failed.
     cd ..
     powershell -NoProfile -ExecutionPolicy Bypass -File "1_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode 1 >nul
     pause
@@ -48,7 +37,7 @@ echo ============================================
 echo   Pipeline complete!
 echo ============================================
 echo   Database: 2_Baza_Danych\energosmart_history.db
-echo   Reports:  3_Dokumenty_Testowe\
+echo   Test documents: generate them with generate_invoices.bat
 echo.
 powershell -NoProfile -ExecutionPolicy Bypass -File "1_Skrypty_Python\monitor.ps1" -End "%ESRUNID%" -ExitCode 0 >nul
 pause

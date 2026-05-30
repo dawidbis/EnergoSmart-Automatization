@@ -24,7 +24,7 @@ if /i not "%A2%"=="n" call "%~dp0bat\setup_env.bat"
 cd /d "%~dp0"
 echo.
 
-set /p A3=STEP 3/5  Build the database + sample reports? [Y/n]:
+set /p A3=STEP 3/5  Build the database (SQLite warehouse)? [Y/n]:
 if /i not "%A3%"=="n" call "%~dp0bat\run_local_pipeline.bat"
 cd /d "%~dp0"
 echo.

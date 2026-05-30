@@ -82,9 +82,9 @@ launched from `monitor.bat`.
 
 After `run_local_pipeline.bat`:
 - `2_Baza_Danych/energosmart_history.db` — historical SQLite database
-- `3_Dokumenty_Testowe/` — generated Excel + PDF reports (with injected anomalies)
 
-The generated PDFs are also the **training set** for the AI Builder model.
+Then generate the test documents with `generate_invoices.bat` (Green/Yellow/Red) into
+`3_Dokumenty_Testowe/`. Those PDFs are also the **training set** for the AI Builder model.
 
 For the full run-through, double-click **`demo.bat`** in the repo root. After an
 Accepted reading syncs back, confirm it landed locally with **`monitor.bat`**
@@ -99,7 +99,8 @@ EnergoSmart-Automatization/
 ├── .github/workflows/python-lint.yml   # CI: flake8 lint + pytest
 ├── 1_Skrypty_Python/                   # Data engineering layer
 │   ├── generate_history_db.py          # Builds SQLite history (150 clients x 24 months)
-│   ├── simulate_clients.py             # Generates Excel/PDF reports + anomalies
+│   ├── simulate_clients.py             # Shared PDF/DB helper module (used by generate_invoices)
+│   ├── generate_invoices.py            # Generates typed test documents (Green/Yellow/Red)
 │   ├── tests/test_pipeline.py          # pytest suite
 │   ├── requirements.txt
 │   └── requirements-dev.txt
@@ -116,7 +117,7 @@ EnergoSmart-Automatization/
 └── bat/                                # Helper tools (also launchable from monitor)
     ├── install.bat                     # Plug & Play installer
     ├── setup.bat / setup_env.bat       # RPA-bridge / email (.env) setup
-    ├── run_local_pipeline.bat          # Generate DB + reports
+    ├── run_local_pipeline.bat          # Build the SQLite warehouse (DB only)
     ├── generate_invoices.bat           # Make typed test documents
     ├── send_documents.bat              # Email documents to the inbox
     ├── healthcheck.bat                 # Warehouse health-check (RPA-synced rows)

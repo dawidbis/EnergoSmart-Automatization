@@ -10,7 +10,7 @@ the cloud pipeline.
 | Script | Purpose |
 |---|---|
 | `generate_history_db.py` | Builds the SQLite history DB: 150 business clients across 7 sectors, 24 months of weekly readings (~14.7k rows), with sector-realistic baselines, seasonal variation and flagged anomalies. |
-| `simulate_clients.py` | Reads the DB and produces per-client **Excel** and **PDF** reports into `3_Dokumenty_Testowe/`, randomly injecting consumption anomalies (spike / drop / noise) to exercise the AI + review paths. |
+| `simulate_clients.py` | **Shared helper module** — the PDF layout (`EnergyReportPDF`) + DB readers (`fetch_recent_readings`, `get_all_clients`) that `generate_invoices.py` imports. It can still dump per-client reports if run standalone, but the **pipeline no longer calls it**: test documents are generated **only** by `generate_invoices.py`. |
 
 ### Operator tools (exercise & observe the flow)
 
@@ -20,7 +20,7 @@ the cloud pipeline.
 | `setup_env.py` | `setup_env.bat` | Interactive wizard that writes `.env` (email/SMTP). Pre-fills defaults from any existing `.env`/`.env.example`, infers the SMTP server from your email domain (Gmail / Outlook / Microsoft 365), hides the password, backs up an existing `.env` to `.env.bak`, and can test the SMTP login (`--test`). |
 | `generate_invoices.py` | `generate_invoices.bat` | Generates a chosen number of typed test documents split by Cloud Flow path: **GREEN** (valid → auto-accept), **YELLOW** (zero/spike/drop → manual review), **RED** (flyer/blank → auto-reject). Files are named `GREEN_*` / `YELLOW_*` / `RED_*` so the other tools recognise them. |
 | `send_documents.py` | `send_documents.bat` | Emails prepared PDFs to the monitored inbox via SMTP. Recognises **typed docs** (`GREEN_/YELLOW_/RED_`) **and pipeline meter readings** (`*_MeterReading_*.pdf`, counted as GREEN). Pick **several / one / all paths** and, per path, a **specific count or `all`** (e.g. `--green 3 --yellow all --red 1`). `--interactive` prompts for everything; also `--delay`, `--subject-prefix`, `--dry-run`. |
-| `clean.py` | `clean.bat` | One cleaner for all test artifacts: generated `*.pdf`/`*.xlsx` (`--target files`), the **Microsoft 365** inbox via classic **Outlook COM** (`--target outlook`, since M365 blocks basic-auth IMAP), and **Gmail** Sent + bounced-back mail via **IMAP → Trash** (`--target gmail`), the **monitor run-history** (`--target logs`), or `all`. **Dry run by default**; `--yes` deletes (the `.bat` asks first). Never touches the DB or source. |
+| `clean.py` | `clean.bat` | One cleaner for all test artifacts: generated `*.pdf`/`*.xlsx` (`--target files`), the **Microsoft 365** inbox via classic **Outlook COM** (`--target outlook`, since M365 blocks basic-auth IMAP), **Gmail** Sent + bounced-back mail via **IMAP → Trash** (`--target gmail`), the **monitor run-history** (`--target logs`), the **RPA-synced warehouse rows** (`--target rpa`, only `sector='Unknown'` test inserts), or `all`. **Dry run by default**; `--yes` deletes (the `.bat` asks first). Never touches the **seeded history** or source. |
 | _(orchestrator)_ | `demo.bat` (repo root) | **Full guided run** for a fresh machine: install → configure email → build DB → generate → send. Calls the `bat\` wrappers in order, asking before each step. |
 | `healthcheck.ps1` | `healthcheck.bat` | Read-only **warehouse health-check** (PowerShell + SQLite ODBC, the same driver the RPA uses): totals, anomalies, status breakdown and the most recent **RPA-synced** rows (`sector='Unknown'`). Confirms an Accepted reading reached the local DB. `-Recent N` to list more. |
 | `monitor.ps1` | `monitor.bat` | **Control panel / monitor.** Logs every wrapper `.bat` run (start / end / exit code / duration) to `logs/run_history.jsonl`, shows tasks **in progress** + recent history ("what each run did"), reads the SQLite warehouse, and can **launch Power Automate Desktop**. `-Watch` = live read-only dashboard; `-LaunchPad`; `-ClearHistory`. History is cleared by `clean.py --target logs`. |
@@ -34,7 +34,7 @@ Variables:
 
 | Variable | Used by | Default |
 |---|---|---|
-| `DB_PATH` | generate, simulate, generate_invoices, setup | `../2_Baza_Danych/energosmart_history.db` |
+| `DB_PATH` | generate, simulate, generate_invoices, clean (`--target rpa`), setup | `../2_Baza_Danych/energosmart_history.db` |
 | `OUTPUT_DIR` | simulate, generate_invoices, send, clean | `../3_Dokumenty_Testowe` |
 | `NUM_CLIENTS` | generate | `150` |
 | `SMTP_*`, `*_EMAIL` | simulate, send_documents, clean | — |
@@ -50,11 +50,12 @@ Variables:
 ## Run
 
 ```bat
-python generate_history_db.py   # 1. build DB
-python simulate_clients.py      # 2. build reports
+python generate_history_db.py                 # 1. build DB (warehouse)
+python generate_invoices.py --green 5 --yellow 5 --red 2   # 2. generate test documents
 ```
 
-Or from the repo root: `bat\run_local_pipeline.bat` (or the full `demo.bat`)
+Or from the repo root: `bat\run_local_pipeline.bat` (builds the DB) then
+`bat\generate_invoices.bat` (or the full `demo.bat`)
 
 ### Operator tools
 

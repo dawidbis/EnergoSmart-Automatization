@@ -13,7 +13,10 @@ clean_outlook.py + clean_gmail.py):
             emails bounced back to Inbox), via IMAP + App Password. Matches are
             moved to Trash (recoverable ~30 days).
   logs    - the monitor run-history log (logs/run_history.jsonl).
-  all     - files + outlook + gmail + logs.
+  rpa     - the RPA-synced rows the Desktop Flow wrote into the warehouse
+            (energosmart_history.db, marked sector='Unknown'). Only those test
+            rows are removed; the seeded 24-month history is left untouched.
+  all     - files + logs + rpa + outlook + gmail.
 
 Dry run by default; pass --yes to actually delete.
 
@@ -22,6 +25,7 @@ Usage:
     python clean.py --yes                     # delete generated files
     python clean.py --target outlook          # dry run, M365 inbox (Outlook COM)
     python clean.py --target gmail --yes      # move Gmail test mail to Trash
+    python clean.py --target rpa --yes        # drop RPA-synced warehouse rows
     python clean.py --target all --yes        # everything
 """
 
@@ -29,6 +33,7 @@ import argparse
 import imaplib
 import os
 import re
+import sqlite3
 from pathlib import Path
 
 try:
@@ -38,9 +43,11 @@ except Exception:
     pass
 
 OUTPUT_DIR = os.getenv('OUTPUT_DIR', '../3_Dokumenty_Testowe')
+DB_PATH = os.getenv('DB_PATH', '../2_Baza_Danych/energosmart_history.db')
 PREFIXES = {'green': 'GREEN_', 'yellow': 'YELLOW_', 'red': 'RED_'}
 DEFAULT_SUBJECT = 'EnergoSmart'
 LOG_FILE = Path(__file__).resolve().parent.parent / 'logs' / 'run_history.jsonl'
+RPA_MARKER_SECTOR = 'Unknown'   # PAD inserts use this sector as a provenance tag
 
 OL_FOLDER_INBOX = 6   # olFolderInbox
 OL_MAIL_ITEM = 43     # olMail
@@ -105,6 +112,55 @@ def clean_logs(do_delete):
         print('[OK] run history cleared.')
     except OSError as exc:
         print(f'   [warn] {exc}')
+    return 0
+
+
+# --------------------------------------------------------------------------- #
+# rpa (RPA-synced rows in the local SQLite warehouse)
+# --------------------------------------------------------------------------- #
+def clean_rpa(do_delete):
+    """Delete the rows the Desktop Flow synced into the warehouse.
+
+    Those rows are tagged sector='Unknown' (see PAD_kod_zrodlowy.txt / healthcheck),
+    so we only ever remove RPA test inserts, never the seeded 24-month history.
+    """
+    db = Path(DB_PATH)
+    if not db.exists():
+        print(f'[RPA] no warehouse at {DB_PATH}.')
+        return 0
+    try:
+        conn = sqlite3.connect(str(db))
+        rows = conn.execute(
+            'SELECT client_id, reading_date, consumption_kwh, status '
+            'FROM energosmart_history WHERE sector = ? ORDER BY inserted_at DESC',
+            (RPA_MARKER_SECTOR,),
+        ).fetchall()
+    except sqlite3.Error as exc:
+        print(f'[RPA] cannot read warehouse: {exc}')
+        return 1
+    if not rows:
+        print(f"[RPA] no RPA-synced rows (sector='{RPA_MARKER_SECTOR}') in {DB_PATH}.")
+        conn.close()
+        return 0
+    print(f"[RPA] {len(rows)} RPA-synced row(s) (sector='{RPA_MARKER_SECTOR}') in {DB_PATH}:")
+    for client_id, reading_date, kwh, status in rows[:30]:
+        print(f'   - {client_id}  {reading_date}  {kwh}  {status}')
+    if len(rows) > 30:
+        print(f'   ... and {len(rows) - 30} more')
+    if not do_delete:
+        print('[DRY-RUN] nothing deleted (use --yes).')
+        conn.close()
+        return 0
+    try:
+        cur = conn.execute('DELETE FROM energosmart_history WHERE sector = ?',
+                           (RPA_MARKER_SECTOR,))
+        conn.commit()
+        print(f'[OK] deleted {cur.rowcount} RPA-synced row(s) from the warehouse.')
+    except sqlite3.Error as exc:
+        print(f'   [warn] {exc}')
+        conn.close()
+        return 1
+    conn.close()
     return 0
 
 
@@ -233,7 +289,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Clean EnergoSmart test artifacts (files / outlook / gmail).')
     parser.add_argument('--target',
-                        choices=['files', 'outlook', 'gmail', 'logs', 'all'],
+                        choices=['files', 'outlook', 'gmail', 'logs', 'rpa', 'all'],
                         default='files', help='what to clean (default: files)')
     parser.add_argument('--type', choices=['green', 'yellow', 'red', 'all'],
                         default='all', help='[files] limit to one path type')
@@ -249,6 +305,9 @@ def main():
     if args.target in ('logs', 'all'):
         print()
         rc |= clean_logs(args.yes)
+    if args.target in ('rpa', 'all'):
+        print()
+        rc |= clean_rpa(args.yes)
     if args.target in ('outlook', 'all'):
         print()
         rc |= clean_outlook(args.subject, args.yes)

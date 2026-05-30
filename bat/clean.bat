@@ -10,7 +10,8 @@ echo   files   - generated PDFs/XLSX in 3_Dokumenty_Testowe
 echo   outlook - test emails in the M365 inbox (classic Outlook, COM)
 echo   gmail   - test emails in Gmail (Sent + bounced) via IMAP -^> Trash
 echo   logs    - monitor run-history (logs\run_history.jsonl)
-echo   all     - files + outlook + gmail + logs
+echo   rpa     - RPA-synced rows in the warehouse (sector='Unknown')
+echo   all     - files + logs + rpa + outlook + gmail
 echo.
 
 if not exist ".venv\Scripts\activate.bat" (
@@ -24,7 +25,7 @@ for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass
 cd 1_Skrypty_Python
 
 set "TARGET="
-set /p TARGET=What to clean? [files/outlook/gmail/logs/all] (default files):
+set /p TARGET=What to clean? [files/outlook/gmail/logs/rpa/all] (default files):
 if "%TARGET%"=="" set TARGET=files
 
 echo.
