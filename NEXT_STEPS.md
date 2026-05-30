@@ -1,6 +1,12 @@
 # EnergoSmart — Next Steps
 
-Status snapshot (2026-05-29): **Step 5 RPA bridge live (cloud → local SQLite). Only Power BI (Step 6) remains.**
+Status snapshot (2026-05-30): **Steps 1–5 + Cloud Flow 1 (anomaly Yellow + contract IDs) done & tested. Only Power BI (Step 6) + the report remain.**
+
+> **Repo layout (2026-05-30 restructure):** all folders are English with the `1_..7_` numbering
+> kept. Local tooling lives under **`1_Scripts/`** split by type: `py/` (scripts + tests +
+> requirements + `.env`), `ps/` (PowerShell + the shared **`ps/sql/`** `.sql` query library),
+> `bat/` (renamed, self-describing wrappers), `logs/` (runtime). Front doors stay at the repo
+> root: `demo.bat`, `monitor.bat`. Scripts load their SQL from `1_Scripts/ps/sql/*.sql`.
 
 ✅ Python data layer (+ tests, CI, install.bat)
 ✅ Dataverse table `Readings` (publisher `dbis`, prefix `db_`)
@@ -22,7 +28,7 @@ Key gotchas already solved (reuse the knowledge):
 
 When a reading is **Accepted**, Flow 2 pushes it into the local
 `energosmart_history.db` via Power Automate Desktop — **proven working end to end**
-(verify with `healthcheck.bat`). Build notes kept below for reference / re-import.
+(verify with `warehouse_healthcheck.bat`). Build notes kept below for reference / re-import.
 
 ### 5a. Cloud Flow 2 — `EnergoSmart_OnReadingAccepted`
 1. Power Automate → in solution **EnergoSmart System** → New → Cloud flow → Automated
@@ -35,12 +41,12 @@ When a reading is **Accepted**, Flow 2 pushes it into the local
    - Inputs: Client ID, Consumption kWh, Reading Date (from trigger row)
 5. After success → **Update a row**: Status = **Synced**, Verified At = `utcNow()`
 
-> See existing `4_Power_Platform_Solucja/FLOW_2_STATUS_TRIGGER.md`.
+> See existing `4_Power_Platform_Solution/FLOW_2_STATUS_TRIGGER.md`.
 
 ### 5b. Power Automate Desktop (the machine connector)
 1. Install **Power Automate Desktop**, sign in with the same M365 account (machine auto-registers).
 2. Install **SQLite ODBC Driver** (Ch. Werner) — gives an ODBC source for the `.db` file.
-   - Create a System DSN pointing at `2_Baza_Danych/energosmart_history.db`, OR use a connection string.
+   - Create a System DSN pointing at `2_Database/energosmart_history.db`, OR use a connection string.
 3. New desktop flow `PAD_UpdateSQLDatabase` with **input variables**: ClientID, Consumption, ReadingDate.
 4. Actions: **Open SQL connection** (ODBC/SQLite) → **Execute SQL statement**:
    ```sql
@@ -67,7 +73,7 @@ When a reading is **Accepted**, Flow 2 pushes it into the local
 ---
 
 ## Optional enhancements (portfolio polish)
-- **Real anomaly detection** (true 🟡 for value spikes) — *local side done, AI retrain pending*: docs already print **Monthly Avg (kWh)**; the generator now makes GREEN within ±8% and YELLOW ≥45% off the average (`generate_invoices.py`, `ANOMALY_THRESHOLD=0.40`). Remaining: add a `MonthlyAvg` field to the AI model (re-tag + retrain + republish) and wire the deviation condition into Flow 1. Step-by-step + exact expressions: [`4_Power_Platform_Solucja/AI_BUILDER_RETRAIN.md`](4_Power_Platform_Solucja/AI_BUILDER_RETRAIN.md).
+- **Real anomaly detection** (true 🟡 for value spikes) — *local side done, AI retrain pending*: docs already print **Monthly Avg (kWh)**; the generator now makes GREEN within ±8% and YELLOW ≥45% off the average (`generate_invoices.py`, `ANOMALY_THRESHOLD=0.40`). Remaining: add a `MonthlyAvg` field to the AI model (re-tag + retrain + republish) and wire the deviation condition into Flow 1. Step-by-step + exact expressions: [`4_Power_Platform_Solution/AI_BUILDER_RETRAIN.md`](4_Power_Platform_Solution/AI_BUILDER_RETRAIN.md).
 - **Excel + jpg/png** attachment paths in Flow 1 (currently PDF-only; Form type = pdf).
 - **Attachment preview** in the app: save the email attachment to a Dataverse File column / SharePoint and show it on the form so the verifier sees the source document.
 - **Button visibility**: show Akceptuj/Odrzuć only when Status = Pending Review (`Visible` = `Self.Selected.Item.Status = Status.'Pending Review'`).
@@ -76,6 +82,6 @@ When a reading is **Accepted**, Flow 2 pushes it into the local
 ---
 
 ## Housekeeping
-- **Export solution**: Solutions → EnergoSmart System → Export → Managed → save to `4_Power_Platform_Solucja/EnergoSmart_Solution.zip`.
+- **Export solution**: Solutions → EnergoSmart System → Export → Managed → save to `4_Power_Platform_Solution/EnergoSmart_Solution.zip`.
 - ~~git push~~ — done; local `main` is in sync with `origin/main`.
 - Update root `README.md` status table as layers complete.

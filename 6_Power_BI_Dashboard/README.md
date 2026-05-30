@@ -12,8 +12,8 @@ warehouse.
 ## Prerequisites
 
 - **Power BI Desktop** (free).
-- **SQLite3 ODBC Driver** installed — run `setup.bat` (it's the same driver the RPA uses).
-- The warehouse built — run `demo.bat` (or `bat\run_local_pipeline.bat`).
+- **SQLite3 ODBC Driver** installed — run `setup_odbc_bridge.bat` (it's the same driver the RPA uses).
+- The warehouse built — run `demo.bat` (or `1_Scripts\bat\build_database.bat`).
 - Access to the Dataverse environment that holds the `Readings` table.
 
 ---
@@ -36,7 +36,7 @@ Columns you'll use: `Status`, `AI Confidence`, `Client ID`, `Consumption kWh`,
 1. (Once) Create a **System DSN** *or* use a connection string. Easiest is a DSN:
    **ODBC Data Sources (64-bit)** → **System DSN** → **Add** → *SQLite3 ODBC Driver*
    → Name `EnergoSmart` → Database = full path to
-   `2_Baza_Danych\energosmart_history.db` → OK.
+   `2_Database\energosmart_history.db` → OK.
 2. Power BI Desktop → **Get data** → **ODBC** → pick the **EnergoSmart** DSN
    (or paste `Driver={SQLite3 ODBC Driver};Database=C:\...\energosmart_history.db;`).
 3. Select **energosmart_history** → **Load** (storage mode **Import**).

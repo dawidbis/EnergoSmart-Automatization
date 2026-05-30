@@ -2,7 +2,7 @@
 
 This is the **headline technical piece**: when a reading is `Accepted` in Dataverse,
 Cloud Flow 2 calls a **Power Automate Desktop (PAD)** flow that writes the validated
-reading straight into the on-prem warehouse `2_Baza_Danych/energosmart_history.db`.
+reading straight into the on-prem warehouse `2_Database/energosmart_history.db`.
 
 SQLite has no native Power Platform connector, so the bridge runs **locally** over
 an **ODBC** connection. PAD is the "machine connector" that lets a cloud flow reach
@@ -22,8 +22,8 @@ Artifacts in this folder:
 
 ## Prerequisites
 
-- Windows with the local warehouse generated (`run_local_pipeline.bat` →
-  `2_Baza_Danych/energosmart_history.db` exists).
+- Windows with the local warehouse generated (`build_database.bat` →
+  `2_Database/energosmart_history.db` exists).
 - The same Microsoft 365 account used for the cloud flows.
 - Cloud Flow 1 + the Power Apps review app already working (layers 1–4).
 
@@ -43,11 +43,11 @@ Artifacts in this folder:
 
 Power Automate has no SQLite connector, so install an ODBC driver.
 
-**Automated (recommended):** run **`setup.bat`** from the repo root (or just
+**Automated (recommended):** run **`setup_odbc_bridge.bat`** from the repo root (or just
 `install.bat`, which calls it). It checks the registry for the driver and, if
 missing, downloads the 64-bit installer and runs it silently — accept the UAC
 prompt — **and** sets the `ENERGOSMART_DB_PATH` env var (see Option A).
-`python 1_Skrypty_Python/setup.py --check-only` reports driver status only.
+`python 1_Scripts/py/setup.py --check-only` reports driver status only.
 
 **Manual:**
 
@@ -57,7 +57,7 @@ prompt — **and** sets the `ENERGOSMART_DB_PATH` env var (see Option A).
 
 ### Option A — env var (recommended, portable)
 
-Don't hard-code the path. `setup.bat` / `install.bat` set the Windows env var
+Don't hard-code the path. `setup_odbc_bridge.bat` / `install.bat` set the Windows env var
 `ENERGOSMART_DB_PATH` to the absolute path of the warehouse. In the flow, read it
 with a **Get Windows environment variable** action
 (`ENERGOSMART_DB_PATH` → `EnvironmentVariableValue`) as the first step, then use:
@@ -74,7 +74,7 @@ Driver=SQLite3 ODBC Driver;Database=%EnvironmentVariableValue%;
 Only if the env var isn't set. Use this string directly in "Open SQL connection":
 
 ```
-Driver=SQLite3 ODBC Driver;Database=D:\EnergoSmart\EnergoSmart-Automatization\2_Baza_Danych\energosmart_history.db;
+Driver=SQLite3 ODBC Driver;Database=D:\EnergoSmart\EnergoSmart-Automatization\2_Database\energosmart_history.db;
 ```
 
 ### Option C — System DSN (cleaner, reusable)
@@ -130,7 +130,7 @@ it makes a re-sync idempotent instead of throwing.
 
 ## Step 4 — Wire it to Cloud Flow 2
 
-See **`../4_Power_Platform_Solucja/FLOW_2_STATUS_TRIGGER.md`**. Flow 2:
+See **`../4_Power_Platform_Solution/FLOW_2_STATUS_TRIGGER.md`**. Flow 2:
 1. triggers on Dataverse row **Modified**,
 2. checks `Status = Accepted`,
 3. calls **Run a flow built with Power Automate Desktop → `PAD_UpdateSQLDatabase`**
@@ -151,7 +151,7 @@ See **`../4_Power_Platform_Solucja/FLOW_2_STATUS_TRIGGER.md`**. Flow 2:
 3. Watch Flow 2's run history — the desktop-flow action should succeed.
 4. Confirm the row landed locally:
    ```bat
-   python -c "import sqlite3;c=sqlite3.connect(r'2_Baza_Danych/energosmart_history.db');print(c.execute(\"SELECT client_id,reading_date,consumption_kwh,status FROM energosmart_history WHERE sector='Unknown' ORDER BY inserted_at DESC LIMIT 5\").fetchall())"
+   python -c "import sqlite3;c=sqlite3.connect(r'2_Database/energosmart_history.db');print(c.execute(\"SELECT client_id,reading_date,consumption_kwh,status FROM energosmart_history WHERE sector='Unknown' ORDER BY inserted_at DESC LIMIT 5\").fetchall())"
    ```
 5. Back in Dataverse the row's `Status` should now read **Synced**.
 
@@ -170,6 +170,6 @@ See **`../4_Power_Platform_Solucja/FLOW_2_STATUS_TRIGGER.md`**. Flow 2:
 
 ## Also see
 - `PAD_kod_zrodlowy.txt` — the flow source
-- `../2_Baza_Danych/README.md` — warehouse schema
-- `../4_Power_Platform_Solucja/FLOW_2_STATUS_TRIGGER.md` — Cloud Flow 2
+- `../2_Database/README.md` — warehouse schema
+- `../4_Power_Platform_Solution/FLOW_2_STATUS_TRIGGER.md` — Cloud Flow 2
 - `../NEXT_STEPS.md` — roadmap (Step 5 / Step 6)

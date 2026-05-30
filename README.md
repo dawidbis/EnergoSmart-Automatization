@@ -76,19 +76,19 @@ demo.bat
 monitor.bat
 ```
 
-Individual tools live in `bat\` (install, setup, setup_env, run_local_pipeline,
-generate_invoices, send_documents, run_tests, healthcheck, clean) and can also be
-launched from `monitor.bat`.
+The helper tools live in `1_Scripts\bat\` (install, setup_odbc_bridge,
+configure_email, build_database, generate_documents, send_documents, run_tests,
+warehouse_healthcheck, clean_artifacts) and can also be launched from `monitor.bat`.
 
-After `run_local_pipeline.bat`:
-- `2_Baza_Danych/energosmart_history.db` — historical SQLite database
+After `build_database.bat`:
+- `2_Database/energosmart_history.db` — historical SQLite database
 
-Then generate the test documents with `generate_invoices.bat` (Green/Yellow/Red) into
-`3_Dokumenty_Testowe/`. Those PDFs are also the **training set** for the AI Builder model.
+Then generate the test documents with `generate_documents.bat` (Green/Yellow/Red) into
+`3_Test_Documents/`. Those PDFs are also the **training set** for the AI Builder model.
 
 For the full run-through, double-click **`demo.bat`** in the repo root. After an
 Accepted reading syncs back, confirm it landed locally with **`monitor.bat`**
-(or `bat\healthcheck.bat`).
+(or `1_Scripts\bat\warehouse_healthcheck.bat`).
 
 ---
 
@@ -97,32 +97,40 @@ Accepted reading syncs back, confirm it landed locally with **`monitor.bat`**
 ```
 EnergoSmart-Automatization/
 ├── .github/workflows/python-lint.yml   # CI: flake8 lint + pytest
-├── 1_Skrypty_Python/                   # Data engineering layer
-│   ├── generate_history_db.py          # Builds SQLite history (150 clients x 24 months)
-│   ├── simulate_clients.py             # Shared PDF/DB helper module (used by generate_invoices)
-│   ├── generate_invoices.py            # Generates typed test documents (Green/Yellow/Red)
-│   ├── tests/test_pipeline.py          # pytest suite
-│   ├── requirements.txt
-│   └── requirements-dev.txt
-├── 2_Baza_Danych/                      # SQLite database (generated; git-ignored)
-├── 3_Dokumenty_Testowe/                # Sample reports / AI training docs
-├── 4_Power_Platform_Solucja/           # Cloud setup guides + flow blueprints
+├── 1_Scripts/                          # Data engineering layer (grouped by type)
+│   ├── py/                             # Python scripts + tests + requirements + .env
+│   │   ├── generate_history_db.py      # Builds SQLite history (150 clients x 24 months)
+│   │   ├── generate_invoices.py        # Generates typed test documents (Green/Yellow/Red)
+│   │   ├── simulate_clients.py         # Shared PDF/DB helper module (imported above)
+│   │   ├── clean.py setup.py setup_env.py send_documents.py generate_bad_reports.py
+│   │   └── tests/test_pipeline.py      # pytest suite
+│   ├── ps/                             # PowerShell tools + the shared SQL library
+│   │   ├── monitor.ps1                 # Control panel / run-history / launch PAD
+│   │   ├── healthcheck.ps1             # Warehouse health-check (SQLite ODBC)
+│   │   └── sql/                        # *.sql query library (schema, inserts, reports)
+│   ├── bat/                            # Double-click wrappers (also run from monitor)
+│   │   ├── install.bat                 # Plug & Play installer
+│   │   ├── setup_odbc_bridge.bat       # SQLite ODBC driver + DB-path env var
+│   │   ├── configure_email.bat         # Email / .env wizard
+│   │   ├── build_database.bat          # Build the SQLite warehouse (DB only)
+│   │   ├── generate_documents.bat      # Make typed test documents
+│   │   ├── send_documents.bat          # Email documents to the inbox
+│   │   ├── warehouse_healthcheck.bat   # Warehouse health-check (RPA-synced rows)
+│   │   ├── clean_artifacts.bat         # Clean test artifacts / logs / RPA rows
+│   │   └── run_tests.bat               # Run pytest
+│   └── logs/                           # Monitor run-history (runtime; git-ignored)
+├── 2_Database/                         # SQLite database (generated; git-ignored)
+├── 3_Test_Documents/                   # Generated docs / AI training set (git-ignored)
+├── 4_Power_Platform_Solution/          # Cloud setup guides + flow blueprints
 │   ├── 00_SOLUTION_SETUP.md            # START HERE: Solution -> connections -> table
 │   ├── SETUP_GUIDE.md                  # Cloud Flow 1 (Email Processor)
+│   ├── AI_BUILDER_RETRAIN.md           # Yellow-path anomaly + Client ID/Name retrain
 │   └── FLOW_2_STATUS_TRIGGER.md        # Cloud Flow 2 (Status -> Desktop Flow)
 ├── 5_RPA_Desktop_Flow/                 # Power Automate Desktop (SQLite bridge)
 ├── 6_Power_BI_Dashboard/               # Power BI report + theme
-├── demo.bat                            # Full guided run: install -> env -> DB -> generate -> send
-├── monitor.bat                         # Control panel: dashboard, run-history, launch PAD
-└── bat/                                # Helper tools (also launchable from monitor)
-    ├── install.bat                     # Plug & Play installer
-    ├── setup.bat / setup_env.bat       # RPA-bridge / email (.env) setup
-    ├── run_local_pipeline.bat          # Build the SQLite warehouse (DB only)
-    ├── generate_invoices.bat           # Make typed test documents
-    ├── send_documents.bat              # Email documents to the inbox
-    ├── healthcheck.bat                 # Warehouse health-check (RPA-synced rows)
-    ├── clean.bat                       # Clean test artifacts / monitor logs
-    └── run_tests.bat                   # Run pytest
+├── 7_Documentation/                    # Report checklist / screenshots
+├── demo.bat                            # Full guided run (front door, repo root)
+└── monitor.bat                         # Control panel (front door, repo root)
 ```
 
 ---
@@ -130,14 +138,14 @@ EnergoSmart-Automatization/
 ## Building the Cloud Layer
 
 The Power Platform side is built manually in the maker portal (it can't be fully
-scripted). Step-by-step guides live in `4_Power_Platform_Solucja/`:
+scripted). Step-by-step guides live in `4_Power_Platform_Solution/`:
 
 1. `00_SOLUTION_SETUP.md` — Solution, publisher, connections, Dataverse table
 2. `SETUP_GUIDE.md` — Cloud Flow 1 (email intake + AI Builder + branching)
 3. `FLOW_2_STATUS_TRIGGER.md` — Cloud Flow 2 (Dataverse trigger → Desktop Flow)
 
 Once complete, export the solution as a managed `.zip` into
-`4_Power_Platform_Solucja/` for re-import to other environments.
+`4_Power_Platform_Solution/` for re-import to other environments.
 
 ---
 

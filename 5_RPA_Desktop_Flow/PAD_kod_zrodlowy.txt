@@ -3,7 +3,7 @@
 ================================================================================
  Purpose : Cloud Flow 2 (EnergoSmart_OnReadingAccepted) calls this desktop flow
            when a reading reaches Status = Accepted. It writes the validated
-           reading into the local warehouse  2_Baza_Danych/energosmart_history.db
+           reading into the local warehouse  2_Database/energosmart_history.db
            via the SQLite ODBC bridge.
 
  This is the "headline" piece of the architecture: the cloud → on-prem hand-off.
@@ -35,7 +35,7 @@
 
  The DB path is NOT hard-coded. It comes from the Windows env var
  ENERGOSMART_DB_PATH, which setup_env.py / install.bat set to the absolute path of
- 2_Baza_Danych/energosmart_history.db. The flow's first action reads it via the
+ 2_Database/energosmart_history.db. The flow's first action reads it via the
  "Get Windows environment variable" action (output: EnvironmentVariableValue), and
  the connection string interpolates %EnvironmentVariableValue%.
 
@@ -120,7 +120,7 @@ SET SyncStatus TO $'''OK'''
 ================================================================================
  VERIFY (after a test run, from the repo root)
 ================================================================================
-   python -c "import sqlite3;c=sqlite3.connect(r'2_Baza_Danych/energosmart_history.db');\
+   python -c "import sqlite3;c=sqlite3.connect(r'2_Database/energosmart_history.db');\
 print(c.execute(\"SELECT client_id,reading_date,consumption_kwh,status FROM \
 energosmart_history WHERE sector='Unknown' ORDER BY inserted_at DESC LIMIT 5\").fetchall())"
 

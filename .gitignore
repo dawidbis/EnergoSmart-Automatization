@@ -52,12 +52,12 @@ Thumbs.db
 htmlcov/
 .coverage
 
-# Generated test documents (regenerate via generate_invoices.py / simulate_clients.py)
-3_Dokumenty_Testowe/*.pdf
-3_Dokumenty_Testowe/*.xlsx
+# Generated test documents (regenerate via generate_invoices.py)
+3_Test_Documents/*.pdf
+3_Test_Documents/*.xlsx
 
 # Power Platform exports (large files, re-download from cloud)
-4_Power_Platform_Solucja/*.zip
+4_Power_Platform_Solution/*.zip
 
 # Monitor run-history (runtime data; clear via clean.py --target logs)
 logs/
